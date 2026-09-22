@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiquete — Preventa del cafetín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+
+  <!-- ===================== TOPBAR ===================== -->
+  <header class="topbar">
+   <div class="brand">
+    <img src="LOGO INTI.jpeg" alt="LOGO INTI" class="brand-logo">
+
+    <div class="brand-text">
+        <span class="brand-name">TECNICO</span>
+        <span class="brand-sub">Cafetín Instituciónal INTI</span>
+    </div>
+</div>
+
+    <nav class="topnav" id="topnav">
+
+    <button class="nav-pill nav-pill--active" data-goto="view-login">
+      🏠 Inicio
+    </button>
+
+    <button class="nav-pill" data-goto="view-menu" data-role="estudiante">
+      🍴 Mi pedido
+    </button>
+
+    <button class="nav-pill" data-goto="view-admin" data-role="cafetin">
+      ▦ Panel del cafetín
+    </button>
+
+    <button class="nav-pill nav-pill--ghost" id="btnLogout">
+      ⇥ Salir
+    </button>
+
+  </nav>
+  </header>
+
+  <main>
+    <!-- ===================== VISTA: LOGIN ===================== -->
+  <section id="view-login" class="view is-active">
+  <div class="login-grid">
+
+    <div class="ticket-hero">
+
+  <!-- LOGO DEL INTI -->
+  <img src="LOGO INTI.jpeg" 
+       alt="Logo INTI" 
+       class="hero-logo">
+
+  <!-- NOMBRE DEL CAFETÍN -->
+  <p class="hero-brand">Cafetín Institución</p>
+
+  <!-- COCODRILO -->
+  <img src="cocodrilo.png" 
+       alt="Mascota cocodrilo" 
+       class="hero-mascot">
+
+  <!-- TURNO -->
+  <div class="ticket-hero__stub" aria-hidden="true">
+    <span class="ticket-hero__label">Turno No.</span>
+    <span class="ticket-hero__number" id="heroNumber">1</span>
+    <span class="ticket-hero__label">Retira sin hacer fila</span>
+  </div>
+
+  <p class="ticket-hero__caption">
+    Pide antes del timbre. Retira en la ventanilla de entregas rápidas.
+  </p>
+
+</div>
+
+    <div class="login-card">
+      <h1>Ingresa a tu cuenta</h1>
+
+      <p class="login-sub">
+        Usa tu correo institucional para pedir tu refrigerio o para atender el cafetín.
+      </p>
+
+      <div class="role-switch" role="tablist" aria-label="Tipo de cuenta">
+        <button type="button" class="role-btn is-active" data-role="estudiante" role="tab" aria-selected="true">
+          Estudiante
+        </button>
+
+        <button type="button" class="role-btn" data-role="cafetin" role="tab" aria-selected="false">
+          Administrador
+        </button>
+      </div>
+
+      <div class="auth-switch" id="authSwitch" role="tablist" aria-label="Acción">
+        <button type="button" class="auth-btn is-active" data-auth="login" role="tab" aria-selected="true">
+          Iniciar sesión
+        </button>
+
+        <button type="button" class="auth-btn" data-auth="register" role="tab" aria-selected="false">
+          Crear cuenta
+        </button>
+      </div>
+
+      <form id="loginForm" novalidate>
+
+        <label class="field" id="fieldName" hidden>
+          <span>Nombre completo</span>
+          <input type="text" id="loginName" placeholder="Ej. María Hernández">
+        </label>
+
+        <label class="field">
+          <span>Correo institucional</span>
+          <input type="email" id="loginEmail" placeholder="ej. maria.hernandez@colegio.edu.sv" required>
+        </label>
+
+        <label class="field">
+          <span>Contraseña</span>
+          <input type="password" id="loginPass" placeholder="••••••••" required minlength="4">
+        </label>
+
+        <button type="submit" class="btn btn--primary btn--block" id="btnSubmit">
+          Entrar
+        </button>
+
+      </form>
+
+      <p class="login-note" id="loginNote">
+        Demo estudiante: maria@colegio.edu.sv / 1234 · Admin: admin@cafetin.edu.sv / admin123
+      </p>
+
+    </div>
+
+  </div>
+</section>
+  
