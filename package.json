@@ -1,0 +1,25 @@
+{
+  "name": "proc.html.css.js",
+  "version": "1.0.0",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertorosales1700-arch/proyecto-ex26.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/albertorosales1700-arch/proyecto-ex26/issues"
+  },
+  "homepage": "https://github.com/albertorosales1700-arch/proyecto-ex26#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.23.1"
+  }
+}
