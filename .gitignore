@@ -1,2 +1,19 @@
+
 node_modules/
 .env
+.env.*
+!.env.example
+
+# Copias de seguridad locales
+*.backup
+*.bak
+server.pre-render.backup.js
+server.antes-seguridad.js
+public-respaldo-*/
+
+# Configuración privada/local de VS Code y Firebase
+.vscode/
+.firebase/
+
+# Archivos temporales
+*.log

@@ -64,11 +64,22 @@ async function api(
     };
 
 
-    const response =
-      await fetch(
-        url,
-        config
-      );
+    const API_BASE = String(
+  window.TIQUETE_API_BASE || ""
+).replace(/\/$/, "");
+
+const apiUrl = (url) => {
+  if (/^https?:\/\//i.test(url)) return url;
+
+  return API_BASE + (
+    url.startsWith("/") ? url : "/" + url
+  );
+};
+
+const response = await fetch(
+  apiUrl(url),
+  config
+);
 
 
     let data = {};
@@ -137,6 +148,7 @@ async function api(
 const state = {
 
   user: null,
+  cafeteriaId: Number(sessionStorage.getItem("tiquete_cafetin_id") || 1),
 
   cart: {},
 
@@ -167,6 +179,9 @@ async function init() {
 
   updateAuthUi();
 
+  startTurnPolling();
+
+
 
   const topnav =
     $("#topnav");
@@ -196,9 +211,9 @@ async function init() {
       );
 
 
-    state.user =
-      user;
-
+    state.user = user;
+    state.cafeteriaId = Number(user.cafetin_id || 1);
+    sessionStorage.setItem("tiquete_cafetin_id", state.cafeteriaId);
 
     sessionStorage.setItem(
       "tiquete_user_id",
@@ -633,14 +648,15 @@ if (loginForm) {
                     email,
                     password:
                       pass,
+                    cafeteriaId: Number($("#cafetinSelect")?.value || state.cafeteriaId || 1),
                   }),
               }
             );
 
 
-          state.user =
-            data.user;
-
+          state.user = data.user;
+          state.cafeteriaId = Number(data.user.cafetin_id || data.user.cafeteria_id || $("#cafetinSelect")?.value || 1);
+          sessionStorage.setItem("tiquete_cafetin_id", state.cafeteriaId);
 
           sessionStorage.setItem(
             "tiquete_user_id",
@@ -685,14 +701,15 @@ if (loginForm) {
                     pass,
                   expectRole:
                     selectedRole,
+                  cafeteriaId: Number($("#cafetinSelect")?.value || state.cafeteriaId || 1),
                 }),
             }
           );
 
 
-        state.user =
-          data.user;
-
+        state.user = data.user;
+        state.cafeteriaId = Number(data.user.cafetin_id || data.user.cafeteria_id || $("#cafetinSelect")?.value || 1);
+        sessionStorage.setItem("tiquete_cafetin_id", state.cafeteriaId);
 
         sessionStorage.setItem(
           "tiquete_user_id",
@@ -753,9 +770,8 @@ if (btnLogout) {
         null;
 
 
-      sessionStorage.removeItem(
-        "tiquete_user_id"
-      );
+      sessionStorage.removeItem("tiquete_user_id");
+      sessionStorage.removeItem("tiquete_cafetin_id");
 
 
       const topnav =
@@ -772,6 +788,10 @@ if (btnLogout) {
       );
 
 
+      const _ed = $("#menuEditor");
+      if (_ed) _ed.hidden = true;
+      const _ac = $("#accountsPanel");
+      if (_ac) _ac.hidden = true;
       toast(
         "Sesión cerrada."
       );
@@ -798,9 +818,10 @@ async function enterApp(
   }
 
 
-  const role =
-    state.user.role;
-
+  const role = state.user.rol;
+  state.cafeteriaId = Number(state.user.cafetin_id || state.cafeteriaId || 1);
+  const brandSub = $(".brand-sub");
+  if (brandSub) brandSub.textContent = `Cafetín ${state.cafeteriaId} · INTI`;
 
   const topnav =
     $("#topnav");
@@ -865,6 +886,36 @@ async function enterApp(
 }
 
 
+// Perfil de usuario
+function renderProfile() {
+  if (!state.user) return;
+  const user = state.user;
+  const put = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+  put("#profileAvatar", (user.nombre || "U").trim().charAt(0).toUpperCase());
+  put("#profileName", user.nombre || "Usuario");
+  put("#profileEmail", user.correo || "—");
+  put("#profileRole", user.rol === "cafetin" ? "Administrador" : "Estudiante");
+  put("#profileCafetin", `Cafetín ${Number(user.cafetin_id || state.cafeteriaId || 1)}`);
+  put("#profileBalance", money(user.saldo));
+}
+const btnProfile = $("#btnProfile");
+if (btnProfile) btnProfile.addEventListener("click", () => { renderProfile(); showView("view-profile"); });
+const btnProfileBack = $("#btnProfileBack");
+if (btnProfileBack) btnProfileBack.addEventListener("click", () => { if (state.user?.rol === "cafetin") showView("view-admin"); else showView("view-menu"); });
+
+// La barra se oculta al bajar y reaparece al subir.
+(() => {
+  const bar = $(".topbar");
+  if (!bar) return;
+  let lastY = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY;
+    if (y < 70 || y < lastY - 5) bar.classList.remove("nav-hidden");
+    else if (y > lastY + 5) bar.classList.add("nav-hidden");
+    lastY = y;
+  }, { passive: true });
+})();
+
 // =========================================================
 // NAVEGACIÓN
 // =========================================================
@@ -878,6 +929,13 @@ $$(".nav-pill[data-goto]")
 
         const destination =
           btn.dataset.goto;
+
+      // "Inicio" lleva a la pantalla principal del rol activo
+      if (destination === "view-login" && state.user) {
+        await enterApp(false);
+        return;
+      }
+
 
 
         if (
@@ -907,7 +965,7 @@ $$(".nav-pill[data-goto]")
         ) {
 
           if (
-            state.user?.role !==
+            state.user?.rol !==
             "cafetin"
           ) {
 
@@ -996,7 +1054,7 @@ async function loadMenu() {
 
     const { menu } =
       await api(
-        "/api/menu"
+        "/api/menu?cafeteriaId=" + encodeURIComponent(state.cafeteriaId || 1)
       );
 
 
@@ -1697,6 +1755,7 @@ if (placeOrderButton) {
         startOrderPolling(
           order.id
         );
+      loadTurn();
 
 
       } catch (e) {
@@ -2019,7 +2078,7 @@ async function checkCurrentOrderStatus() {
 
 
   if (
-    state.user.role !==
+    state.user.rol !==
     "estudiante"
   ) {
     return;
@@ -2113,7 +2172,7 @@ async function renderBoard() {
 
     if (
       !state.user ||
-      state.user.role !==
+      state.user.rol !==
       "cafetin"
     ) {
 
@@ -2558,7 +2617,7 @@ function startAdminRefresh() {
 
         if (
           !state.user ||
-          state.user.role !==
+          state.user.rol !==
             "cafetin"
         ) {
 
@@ -2647,171 +2706,237 @@ if (btnEditMenu) {
 // RENDERIZAR EDITOR
 // =========================================================
 
+
 function renderMenuEditor() {
+  const list = $("#menuEditorList");
 
-  const list =
-    $("#menuEditorList");
+  if (!list) return;
 
-
-  if (!list) {
+  if (!state.user || state.user.rol !== "cafetin") {
+    list.innerHTML = "<li>Acceso exclusivo para administradores.</li>";
     return;
   }
-
 
   if (!state.menu.length) {
-
-    list.innerHTML = `
-
-      <li>
-        No hay productos registrados.
-      </li>
-
-    `;
-
+    list.innerHTML = "<li>No hay productos registrados.</li>";
     return;
   }
 
+  list.innerHTML = state.menu.map((item) => {
+    const id = String(item.id);
 
-  list.innerHTML =
-    state.menu
-      .map(
-        (item) => {
+    return `
+      <li class="menu-editor-item">
 
-          const id =
-            String(
-              item.id
-            );
+        <div class="menu-editor-info">
+          <label>
+            <input
+              type="checkbox"
+              data-available="${escapeHtml(id)}"
+              ${item.disponible ? "checked" : ""}
+            >
+            <strong>${escapeHtml(item.nombre)}</strong>
+          </label>
 
+          <span class="price-tag">
+            ${money(item.precio)}
+          </span>
+        </div>
 
-          return `
+        <div class="menu-editor-actions">
+          <button
+            type="button"
+            class="btn btn--primary btn--sm"
+            data-edit-product="${escapeHtml(id)}"
+          >
+            Editar
+          </button>
 
-            <li>
+          <button
+            type="button"
+            class="btn btn--sm"
+            data-delete-product="${escapeHtml(id)}"
+          >
+            Eliminar
+          </button>
+        </div>
 
-              <label>
+      </li>
+    `;
+  }).join("");
 
-                <input
-                  type="checkbox"
-                  data-id="${id}"
-                  ${
-                    item.disponible
-                      ? "checked"
-                      : ""
-                  }
-                >
+  // ==========================================
+  // ACTIVAR O DESACTIVAR PRODUCTO
+  // ==========================================
+  list.querySelectorAll("[data-available]").forEach((box) => {
+    box.addEventListener("change", async () => {
+      const id = String(box.dataset.available);
+      const disponible = box.checked;
+      const anterior = !disponible;
 
-                ${escapeHtml(
-                  item.nombre
-                )}
+      box.disabled = true;
 
-              </label>
+      try {
+        await api(`/api/menu/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            adminId: state.user.id,
+            disponible
+          })
+        });
 
-
-              <span class="price-tag">
-                ${money(
-                  item.precio
-                )}
-              </span>
-
-            </li>
-
-          `;
-        }
-      )
-      .join("");
-
-
-  // =====================================================
-  // DISPONIBILIDAD
-  // =====================================================
-
-  list
-    .querySelectorAll(
-      "input[type=checkbox]"
-    )
-    .forEach(
-      (box) => {
-
-        box.addEventListener(
-          "change",
-          async () => {
-
-            const id =
-              String(
-                box.dataset.id
-              );
-
-
-            const disponible =
-              box.checked;
-
-
-            try {
-
-              await api(
-                `/api/menu/${id}`,
-                {
-                  method:
-                    "PATCH",
-
-                  body:
-                    JSON.stringify({
-
-                      adminId:
-                        state.user.id,
-
-                      disponible:
-                        disponible,
-                    }),
-                }
-              );
-
-
-              const item =
-                state.menu.find(
-                  (m) =>
-                    String(
-                      m.id
-                    ) ===
-                    String(id)
-                );
-
-
-              if (item) {
-
-                item.disponible =
-                  disponible;
-              }
-
-
-              toast(
-                disponible
-                  ? "Producto disponible."
-                  : "Producto marcado como agotado."
-              );
-
-
-              renderMenu();
-
-
-              renderMenuEditor();
-
-
-            } catch (e) {
-
-              box.checked =
-                !disponible;
-
-
-              console.error(
-                "Error actualizando producto:",
-                e
-              );
-            }
-          }
+        const item = state.menu.find(
+          (product) => String(product.id) === id
         );
+
+        if (item) item.disponible = disponible;
+
+        renderMenu();
+        renderMenuEditor();
+
+        toast(
+          disponible
+            ? "Producto disponible."
+            : "Producto marcado como agotado."
+        );
+
+      } catch (error) {
+        box.checked = anterior;
+        console.error("Error cambiando disponibilidad:", error);
+      } finally {
+        box.disabled = false;
       }
-    );
+    });
+  });
+
+  // ==========================================
+  // EDITAR NOMBRE Y PRECIO
+  // ==========================================
+  list.querySelectorAll("[data-edit-product]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = String(button.dataset.editProduct);
+
+      const item = state.menu.find(
+        (product) => String(product.id) === id
+      );
+
+      if (!item) {
+        toast("No se encontró el producto.");
+        return;
+      }
+
+      const nuevoNombre = window.prompt(
+        "Escribe el nuevo nombre del producto:",
+        item.nombre
+      );
+
+      if (nuevoNombre === null) return;
+
+      const nombre = nuevoNombre.trim();
+
+      if (!nombre) {
+        toast("El nombre no puede quedar vacío.");
+        return;
+      }
+
+      const nuevoPrecio = window.prompt(
+        "Escribe el nuevo precio del producto:",
+        Number(item.precio).toFixed(2)
+      );
+
+      if (nuevoPrecio === null) return;
+
+      const precio = Number(nuevoPrecio);
+
+      if (
+        nuevoPrecio.trim() === "" ||
+        !Number.isFinite(precio) ||
+        precio < 0
+      ) {
+        toast("Escribe un precio válido, igual o mayor que cero.");
+        return;
+      }
+
+      button.disabled = true;
+
+      try {
+        await api(`/api/menu/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            adminId: state.user.id,
+            nombre,
+            precio: round2(precio)
+          })
+        });
+
+        item.nombre = nombre;
+        item.precio = round2(precio);
+
+        renderMenuEditor();
+        renderMenu();
+
+        toast(`Producto actualizado: ${nombre}`);
+
+      } catch (error) {
+        console.error("Error editando producto:", error);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  // ==========================================
+  // ELIMINAR PRODUCTO
+  // ==========================================
+  list.querySelectorAll("[data-delete-product]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = String(button.dataset.deleteProduct);
+
+      const item = state.menu.find(
+        (product) => String(product.id) === id
+      );
+
+      if (!item) {
+        toast("No se encontró el producto.");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `¿Seguro que deseas eliminar "${item.nombre}" del menú?`
+      );
+
+      if (!confirmar) return;
+
+      button.disabled = true;
+
+      try {
+        await api(`/api/menu/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          body: JSON.stringify({
+            adminId: state.user.id
+          })
+        });
+
+        state.menu = state.menu.filter(
+          (product) => String(product.id) !== id
+        );
+
+        delete state.cart[id];
+
+        renderMenuEditor();
+        renderMenu();
+
+        toast(`"${item.nombre}" fue eliminado del menú.`);
+
+      } catch (error) {
+        console.error("Error eliminando producto:", error);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
 }
+
 
 
 // =========================================================
@@ -2974,7 +3099,7 @@ async function renderAccounts() {
 
     if (
       !state.user ||
-      state.user.role !==
+      state.user.rol !==
         "cafetin"
     ) {
 
@@ -3046,9 +3171,8 @@ async function renderAccounts() {
               );
 
 
-            const esAdmin =
-              a.rol ===
-              "cafetin";
+            const esAdmin = a.rol === "cafetin";
+            const otraCafeteria = Number(a.cafetin_id || 1) !== Number(state.cafeteriaId || 1);
 
 
             return `
@@ -3080,12 +3204,9 @@ async function renderAccounts() {
 
                     ·
 
-                    ${Number(
-                      a.pedidos ||
-                      0
-                    )}
-
-                    pedido(s)
+                    Cafetín ${Number(a.cafetin_id || 1)}
+                    ·
+                    ${Number(a.pedidos || 0)} pedido(s)
 
                   </span>
 
@@ -3108,29 +3229,16 @@ async function renderAccounts() {
                       0
                     ).toFixed(2)}"
                     data-wallet="${id}"
-                    ${
-                      esAdmin
-                        ? "disabled"
-                        : ""
-                    }
+                    ${(esAdmin || otraCafeteria) ? "disabled" : ""}
                   >
 
 
                   <button
                     class="btn btn--primary btn--sm"
                     data-savewallet="${id}"
-                    ${
-                      esAdmin
-                        ? "disabled"
-                        : ""
-                    }
+                    ${(esAdmin || otraCafeteria) ? "disabled" : ""}
                   >
-
-                    ${
-                      esAdmin
-                        ? "Admin"
-                        : "Guardar"
-                    }
+                    ${esAdmin ? "Admin" : (otraCafeteria ? "Otro cafetín" : "Guardar")}
 
                   </button>
 
@@ -3332,6 +3440,73 @@ if (btnCloseAccounts) {
   );
 }
 
+
+// =========================================================
+// TURNO EN VIVO + REINICIO
+// =========================================================
+
+let turnTimer = null;
+
+async function loadTurn() {
+  try {
+    const API_BASE = String(
+  window.TIQUETE_API_BASE || ""
+).replace(/\/$/, "");
+
+const res = await fetch(
+  API_BASE + "/api/turno?cafeteriaId=" +
+  encodeURIComponent(state.cafeteriaId || 1)
+);
+    if (!res.ok) return;
+    const data = await res.json();
+    const n = String(data.siguiente ?? 1);
+    const hero = $("#heroNumber");
+    if (hero) hero.textContent = n;
+    const chip = $("#adminNextTurn");
+    if (chip) chip.textContent = n;
+  } catch (e) {
+    /* sin conexión: se deja el último valor */
+  }
+}
+
+function startTurnPolling() {
+  loadTurn();
+  if (turnTimer) clearInterval(turnTimer);
+  turnTimer = setInterval(() => {
+    if (!document.hidden) loadTurn();
+  }, 6000);
+}
+
+const btnResetTurn = $("#btnResetTurn");
+if (btnResetTurn) {
+  btnResetTurn.addEventListener("click", async () => {
+    if (!state.user || state.user.rol !== "cafetin") {
+      toast("No tienes permisos de administrador.");
+      return;
+    }
+    const ok = window.confirm(
+      "¿Reiniciar los turnos?\n\n" +
+      "El próximo pedido será el turno 1. Los pedidos ya entregados " +
+      "dejarán de mostrarse en el tablero (el historial se conserva)."
+    );
+    if (!ok) return;
+    try {
+      await api("/api/turno/reset", {
+        method: "POST",
+        body: JSON.stringify({ adminId: state.user.id }),
+      });
+      toast("Turnos reiniciados. El próximo turno es el 1.");
+      await loadTurn();
+      await renderBoard();
+    } catch (e) {
+      console.error("Error reiniciando turnos:", e);
+    }
+  });
+}
+
+// Año del footer
+const footYear = $("#footYear");
+if (footYear) footYear.textContent = new Date().getFullYear();
 
 // =========================================================
 // INICIAR
