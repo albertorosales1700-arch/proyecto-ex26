@@ -14,7 +14,6 @@ const app = express();
 
 const PORT = Number(process.env.PORT) || 8123;
 
-
 // =========================================================
 // CONEXIÃ“N A POSTGRESQL
 // =========================================================
@@ -39,7 +38,6 @@ const pool = new Pool(
       }
 );
 
-
 // =========================================================
 // CONFIGURACIÃ“N
 // =========================================================
@@ -47,7 +45,7 @@ const pool = new Pool(
 app.use(express.json());
 
 // Solo se publican los archivos del frontend.
-// (Antes se servÃ­a toda la carpeta y cualquiera podÃ­a descargar
+// (Antes se servÃ¬a toda la carpeta y cualquiera podÃ¬a descargar
 //  server.js con la contraseÃ±a de la base de datos.)
 const PUBLIC_FILES = new Set([
   "/index.html",
@@ -76,7 +74,6 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, archivo));
 });
 
-
 // =========================================================
 // UTILIDADES
 // =========================================================
@@ -86,7 +83,6 @@ const r2 = (n) => {
 
   return Math.round(value * 100) / 100;
 };
-
 
 // =========================================================
 // NORMALIZAR ROL
@@ -99,7 +95,6 @@ function normalizeRole(role) {
       .trim()
       .toLowerCase();
 
-
   if (
     value === "cafetin" ||
     value === "admin" ||
@@ -109,10 +104,8 @@ function normalizeRole(role) {
     return "cafetin";
   }
 
-
   return "estudiante";
 }
-
 
 // =========================================================
 // VALIDAR ADMINISTRADOR
@@ -126,7 +119,6 @@ async function validateAdmin(
   if (!adminId) {
     return false;
   }
-
 
   try {
 
@@ -142,11 +134,9 @@ async function validateAdmin(
         [adminId]
       );
 
-
     if (!q.rows.length) {
       return false;
     }
-
 
     return (
       normalizeRole(
@@ -165,7 +155,6 @@ async function validateAdmin(
   }
 }
 
-
 async function getAdminCafetinId(db, adminId) {
   const q = await db.query("SELECT cafetin_id FROM usuarios WHERE id = $1 AND lower(rol) IN ('cafetin','admin','administrador')", [adminId]);
   return q.rows.length ? Number(q.rows[0].cafetin_id || 1) : null;
@@ -174,7 +163,6 @@ async function getAdminCafetinId(db, adminId) {
 // =========================================================
 // AUTENTICACIÃ“N
 // =========================================================
-
 
  // =========================================================
  // LOGIN â€” Compatible con contraseÃ±as antiguas y bcrypt
@@ -303,7 +291,6 @@ app.post("/api/login", async (req, res) => {
 
 
 
-
  // =========================================================
  // REGISTRO â€” ContraseÃ±as protegidas con bcrypt
  // =========================================================
@@ -323,7 +310,8 @@ app.post("/api/register", async (req, res) => {
       typeof email !== "string" ||
       !email.trim() ||
       typeof password !== "string" ||
-      password.length < 4
+password.length < 4
+      
     ) {
       return res.status(400).json({
         error: "Datos incompletos. La contraseÃ±a debe tener al menos 4 caracteres.",
@@ -337,7 +325,7 @@ app.post("/api/register", async (req, res) => {
       idCafeteria < 1
     ) {
       return res.status(400).json({
-        error: "Selecciona una cafeterÃ­a vÃ¡lida.",
+        error: "Selecciona una cafeterÃ¬a vÃ¡lida.",
       });
     }
 
@@ -354,7 +342,7 @@ app.post("/api/register", async (req, res) => {
 
     if (cafeteriaExiste.rows.length === 0) {
       return res.status(400).json({
-        error: "La cafeterÃ­a seleccionada no existe o no estÃ¡ configurada.",
+        error: "La cafeterÃ¬a seleccionada no existe o no estÃ¡ configurada.",
       });
     }
 
@@ -432,7 +420,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-
 // =========================================================
 // SESIÃ“N
 // =========================================================
@@ -459,7 +446,6 @@ app.get(
           [req.params.id]
         );
 
-
       if (
         !q.rows.length
       ) {
@@ -472,10 +458,8 @@ app.get(
           });
       }
 
-
       const rawUser =
         q.rows[0];
-
 
       const user = {
 
@@ -492,7 +476,6 @@ app.get(
           ),
       };
 
-
       res.json({
 
         ok: true,
@@ -501,14 +484,12 @@ app.get(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error recuperando sesiÃ³n:",
         e
       );
-
 
       res
         .status(500)
@@ -520,11 +501,9 @@ app.get(
   }
 );
 
-
 // =========================================================
 // MENÃš
 // =========================================================
-
 
 // =========================================================
 // OBTENER MENÃš
@@ -552,7 +531,6 @@ app.get(
           [Number(req.query.cafeteriaId) || 1]
         );
 
-
       const menu =
         q.rows.map(
           (item) => ({
@@ -576,7 +554,6 @@ app.get(
           })
         );
 
-
       res.json({
 
         ok: true,
@@ -585,14 +562,12 @@ app.get(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error obteniendo menÃº:",
         e
       );
-
 
       res
         .status(500)
@@ -603,7 +578,6 @@ app.get(
     }
   }
 );
-
 
 // =========================================================
 // MODIFICAR PRODUCTO
@@ -631,11 +605,9 @@ app.patch(
       } =
         req.body || {};
 
-
       const isAdmin =
         await validateAdmin(pool, adminId);
       const adminCafetinId = await getAdminCafetinId(pool, adminId);
-
 
       if (!isAdmin) {
 
@@ -646,7 +618,6 @@ app.patch(
               "Permiso denegado. Solo el administrador puede modificar productos.",
           });
       }
-
 
       // Obtener producto actual
 
@@ -664,7 +635,6 @@ app.patch(
           [req.params.id, adminCafetinId]
         );
 
-
       if (
         !actual.rows.length
       ) {
@@ -677,10 +647,8 @@ app.patch(
           });
       }
 
-
       const productoActual =
         actual.rows[0];
-
 
       // =====================================================
       // NOMBRE
@@ -688,7 +656,6 @@ app.patch(
 
       let nuevoNombre =
         productoActual.nombre;
-
 
       if (
         nombre !== undefined
@@ -708,11 +675,9 @@ app.patch(
             });
         }
 
-
         nuevoNombre =
           nombre.trim();
       }
-
 
       // =====================================================
       // PRECIO
@@ -723,7 +688,6 @@ app.patch(
           productoActual.precio
         );
 
-
       if (
         precio !== undefined
       ) {
@@ -732,7 +696,6 @@ app.patch(
           Number(
             precio
           );
-
 
         if (
           !Number.isFinite(
@@ -749,13 +712,11 @@ app.patch(
             });
         }
 
-
         nuevoPrecio =
           r2(
             nuevoPrecio
           );
       }
-
 
       // =====================================================
       // DISPONIBILIDAD
@@ -765,7 +726,6 @@ app.patch(
         Boolean(
           productoActual.disponible
         );
-
 
       if (
         disponible !==
@@ -785,11 +745,9 @@ app.patch(
             });
         }
 
-
         nuevaDisponibilidad =
           disponible;
       }
-
 
       // =====================================================
       // ACTUALIZAR
@@ -819,10 +777,8 @@ app.patch(
           ]
         );
 
-
       const producto =
         q.rows[0];
-
 
       res.json({
 
@@ -832,14 +788,12 @@ app.patch(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error modificando producto:",
         e
       );
-
 
       res
         .status(500)
@@ -850,7 +804,6 @@ app.patch(
     }
   }
 );
-
 
  // =========================================================
  // ELIMINAR PRODUCTO â€” SOLO ADMINISTRADOR
@@ -887,7 +840,7 @@ app.delete("/api/menu/:id", async (req, res) => {
 
     if (!resultado.rows.length) {
       return res.status(404).json({
-        error: "Producto no encontrado en tu cafetÃ­n."
+        error: "Producto no encontrado en tu cafetÃ¬n."
       });
     }
 
@@ -906,7 +859,6 @@ app.delete("/api/menu/:id", async (req, res) => {
   }
 });
 
-
 // =========================================================
 // AGREGAR PRODUCTO
 // =========================================================
@@ -924,11 +876,9 @@ app.post(
       } =
         req.body || {};
 
-
       const isAdmin =
         await validateAdmin(pool, adminId);
       const adminCafetinId = await getAdminCafetinId(pool, adminId);
-
 
       if (!isAdmin) {
 
@@ -939,7 +889,6 @@ app.post(
               "Permiso denegado.",
           });
       }
-
 
       if (
         !nombre ||
@@ -955,12 +904,10 @@ app.post(
           });
       }
 
-
       const precioNumero =
         Number(
           precio
         );
-
 
       if (
         !Number.isFinite(
@@ -976,7 +923,6 @@ app.post(
               "El precio no es vÃ¡lido.",
           });
       }
-
 
       const q =
         await pool.query(
@@ -1002,7 +948,6 @@ app.post(
           ]
         );
 
-
       res.json({
 
         ok: true,
@@ -1012,14 +957,12 @@ app.post(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error agregando producto:",
         e
       );
-
 
       res
         .status(500)
@@ -1031,11 +974,9 @@ app.post(
   }
 );
 
-
 // =========================================================
 // PEDIDOS
 // =========================================================
-
 
 // =========================================================
 // CREAR PEDIDO
@@ -1048,10 +989,8 @@ app.post(
     const client =
       await pool.connect();
 
-
     let transactionStarted =
       false;
-
 
     try {
 
@@ -1060,7 +999,6 @@ app.post(
         items,
       } =
         req.body || {};
-
 
       // =====================================================
       // VALIDAR USUARIO
@@ -1075,7 +1013,6 @@ app.post(
           "Usuario no vÃ¡lido."
         );
       }
-
 
       const userQuery =
         await client.query(
@@ -1094,7 +1031,6 @@ app.post(
           ]
         );
 
-
       if (
         !userQuery.rows.length
       ) {
@@ -1104,10 +1040,8 @@ app.post(
         );
       }
 
-
       const dbUser =
         userQuery.rows[0];
-
 
       if (
         normalizeRole(
@@ -1119,7 +1053,6 @@ app.post(
           "Solo un estudiante puede realizar pedidos."
         );
       }
-
 
       // =====================================================
       // VALIDAR PRODUCTOS
@@ -1135,14 +1068,11 @@ app.post(
         );
       }
 
-
       const normalizedItems =
         [];
 
-
       let totalServer =
         0;
-
 
       // =====================================================
       // LEER PRODUCTOS DIRECTAMENTE DE POSTGRESQL
@@ -1155,12 +1085,10 @@ app.post(
         const productoId =
           item?.id;
 
-
         const cantidad =
           Number(
             item?.qty
           );
-
 
         if (
           productoId ===
@@ -1174,7 +1102,6 @@ app.post(
           );
         }
 
-
         if (
           !Number.isInteger(
             cantidad
@@ -1186,7 +1113,6 @@ app.post(
             "Cantidad de producto invÃ¡lida."
           );
         }
-
 
         const productoQuery =
           await client.query(
@@ -1203,7 +1129,6 @@ app.post(
             [productoId, Number(dbUser.cafetin_id) || 1]
           );
 
-
         if (
           !productoQuery.rows.length
         ) {
@@ -1213,10 +1138,8 @@ app.post(
           );
         }
 
-
         const producto =
           productoQuery.rows[0];
-
 
         if (
           !producto.disponible
@@ -1227,17 +1150,14 @@ app.post(
           );
         }
 
-
         const precio =
           Number(
             producto.precio
           );
 
-
         totalServer +=
           precio *
           cantidad;
-
 
         normalizedItems.push({
 
@@ -1258,12 +1178,10 @@ app.post(
         });
       }
 
-
       totalServer =
         r2(
           totalServer
         );
-
 
       if (
         totalServer <= 0
@@ -1274,7 +1192,6 @@ app.post(
         );
       }
 
-
       // =====================================================
       // INICIAR TRANSACCIÃ“N
       // =====================================================
@@ -1283,10 +1200,8 @@ app.post(
         "BEGIN"
       );
 
-
       transactionStarted =
         true;
-
 
       // =====================================================
       // DESCONTAR BILLETERA
@@ -1311,7 +1226,6 @@ app.post(
           ]
         );
 
-
       if (
         !saldoQuery.rows.length
       ) {
@@ -1321,14 +1235,12 @@ app.post(
         );
       }
 
-
       const nuevoSaldo =
         r2(
           saldoQuery
             .rows[0]
             .saldo
         );
-
 
       // =====================================================
       // GENERAR TURNO
@@ -1346,7 +1258,6 @@ app.post(
           [Number(dbUser.cafetin_id) || 1]
         );
 
-
       if (
         !contadorQuery.rows.length
       ) {
@@ -1356,12 +1267,10 @@ app.post(
         );
       }
 
-
       const turno =
         contadorQuery
           .rows[0]
           .valor;
-
 
       // =====================================================
       // INSERTAR PEDIDO
@@ -1396,11 +1305,9 @@ app.post(
           ]
         );
 
-
       const pedido =
         pedidoQuery
           .rows[0];
-
 
       // =====================================================
       // INSERTAR DETALLES
@@ -1439,7 +1346,6 @@ app.post(
         );
       }
 
-
       // =====================================================
       // CONFIRMAR
       // =====================================================
@@ -1448,10 +1354,8 @@ app.post(
         "COMMIT"
       );
 
-
       transactionStarted =
         false;
-
 
       // =====================================================
       // RESPUESTA
@@ -1491,7 +1395,6 @@ app.post(
 
       });
 
-
     } catch (e) {
 
       if (
@@ -1515,12 +1418,10 @@ app.post(
         }
       }
 
-
       console.error(
         "Error creando pedido:",
         e
       );
-
 
       res
         .status(400)
@@ -1529,7 +1430,6 @@ app.post(
             e.message,
         });
 
-
     } finally {
 
       client.release();
@@ -1537,7 +1437,6 @@ app.post(
     }
   }
 );
-
 
 // =========================================================
 // OBTENER UN PEDIDO
@@ -1571,7 +1470,6 @@ app.get(
           ]
         );
 
-
       if (
         !pedidoQuery.rows.length
       ) {
@@ -1584,11 +1482,9 @@ app.get(
           });
       }
 
-
       const o =
         pedidoQuery
           .rows[0];
-
 
       const detalleQuery =
         await pool.query(
@@ -1604,7 +1500,6 @@ app.get(
             o.id,
           ]
         );
-
 
       const order = {
 
@@ -1655,7 +1550,6 @@ app.get(
           ),
       };
 
-
       res.json({
 
         ok: true,
@@ -1664,14 +1558,12 @@ app.get(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error obteniendo pedido:",
         e
       );
-
 
       res
         .status(500)
@@ -1682,7 +1574,6 @@ app.get(
     }
   }
 );
-
 
 // =========================================================
 // OBTENER PEDIDOS â€” ADMIN
@@ -1699,13 +1590,11 @@ app.get(
       } =
         req.query;
 
-
       const isAdmin =
         await validateAdmin(
           pool,
           adminId
         );
-
 
       if (!isAdmin) {
 
@@ -1716,7 +1605,6 @@ app.get(
               "Permiso denegado. Solo el administrador puede ver los pedidos.",
           });
       }
-
 
       const adminCafetinId = await getAdminCafetinId(pool, adminId);
       const q =
@@ -1744,7 +1632,6 @@ app.get(
           [adminCafetinId]
         );
 
-
       const orders =
         await Promise.all(
           q.rows.map(
@@ -1764,7 +1651,6 @@ app.get(
                     o.id,
                   ]
                 );
-
 
               return {
 
@@ -1818,7 +1704,6 @@ app.get(
           )
         );
 
-
       res.json({
 
         ok: true,
@@ -1827,14 +1712,12 @@ app.get(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error obteniendo pedidos:",
         e
       );
-
 
       res
         .status(500)
@@ -1845,7 +1728,6 @@ app.get(
     }
   }
 );
-
 
 // =========================================================
 // CAMBIAR ESTADO DEL PEDIDO
@@ -1863,7 +1745,6 @@ app.patch(
       } =
         req.body || {};
 
-
       // =====================================================
       // VALIDAR ADMIN
       // =====================================================
@@ -1874,7 +1755,6 @@ app.patch(
           adminId
         );
 
-
       if (!isAdmin) {
 
         return res
@@ -1884,7 +1764,6 @@ app.patch(
               "Solo el administrador puede cambiar el estado.",
           });
       }
-
 
       // =====================================================
       // ESTADOS PERMITIDOS
@@ -1900,7 +1779,6 @@ app.patch(
 
       ];
 
-
       if (
         !estadosValidos.includes(
           status
@@ -1914,7 +1792,6 @@ app.patch(
               "Estado de pedido no vÃ¡lido.",
           });
       }
-
 
       // =====================================================
       // ACTUALIZAR
@@ -1938,7 +1815,6 @@ app.patch(
           ]
         );
 
-
       if (
         !q.rows.length
       ) {
@@ -1951,7 +1827,6 @@ app.patch(
           });
       }
 
-
       res.json({
 
         ok: true,
@@ -1961,14 +1836,12 @@ app.patch(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error actualizando estado:",
         e
       );
-
 
       res
         .status(500)
@@ -1979,7 +1852,6 @@ app.patch(
     }
   }
 );
-
 
 // =========================================================
 // CUENTAS â€” ADMIN
@@ -1996,7 +1868,6 @@ app.get(
       } =
         req.query;
 
-
       // =====================================================
       // VALIDAR ADMIN
       // =====================================================
@@ -2007,7 +1878,6 @@ app.get(
           adminId
         );
 
-
       if (!isAdmin) {
 
         return res
@@ -2017,7 +1887,6 @@ app.get(
               "Permiso denegado.",
           });
       }
-
 
       
 const adminCafetinId = await getAdminCafetinId(pool, adminId);
@@ -2042,7 +1911,6 @@ WHERE u.cafetin_id = $1
   `,
   [adminCafetinId]
 );
-
 
       const accounts =
         q.rows.map(
@@ -2073,7 +1941,6 @@ WHERE u.cafetin_id = $1
           })
         );
 
-
       res.json({
 
         ok: true,
@@ -2082,14 +1949,12 @@ WHERE u.cafetin_id = $1
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error obteniendo cuentas:",
         e
       );
-
 
       res
         .status(500)
@@ -2100,7 +1965,6 @@ WHERE u.cafetin_id = $1
     }
   }
 );
-
 
 // =========================================================
 // MODIFICAR SALDO â€” ADMIN
@@ -2118,7 +1982,6 @@ app.patch(
       } =
         req.body || {};
 
-
       // =====================================================
       // VALIDAR ADMIN
       // =====================================================
@@ -2128,7 +1991,6 @@ app.patch(
           pool,
           adminId
         );
-
 
       if (!isAdmin) {
 
@@ -2140,7 +2002,6 @@ app.patch(
           });
       }
 
-
       // =====================================================
       // VALIDAR MONTO
       // =====================================================
@@ -2149,7 +2010,6 @@ app.patch(
         Number(
           saldo
         );
-
 
       if (
         !Number.isFinite(
@@ -2165,7 +2025,6 @@ app.patch(
               "Monto invÃ¡lido.",
           });
       }
-
 
       // =====================================================
       // BUSCAR CUENTA DESTINO
@@ -2185,7 +2044,6 @@ app.patch(
           ]
         );
 
-
       if (
         !target.rows.length
       ) {
@@ -2197,7 +2055,6 @@ app.patch(
               "La cuenta no existe.",
           });
       }
-
 
       // =====================================================
       // NO MODIFICAR LA CUENTA ADMIN
@@ -2217,7 +2074,6 @@ app.patch(
               "El saldo del administrador no se puede modificar desde este panel.",
           });
       }
-
 
       // =====================================================
       // ACTUALIZAR SALDO
@@ -2239,7 +2095,6 @@ app.patch(
           ]
         );
 
-
       const user = {
 
         ...q.rows[0],
@@ -2256,7 +2111,6 @@ app.patch(
           ),
       };
 
-
       res.json({
 
         ok: true,
@@ -2265,14 +2119,12 @@ app.patch(
 
       });
 
-
     } catch (e) {
 
       console.error(
         "Error actualizando saldo:",
         e
       );
-
 
       res
         .status(500)
@@ -2283,7 +2135,6 @@ app.patch(
     }
   }
 );
-
 
 // =========================================================
 // TURNOS
@@ -2329,7 +2180,6 @@ app.post("/api/turno/reset", async (req, res) => {
   }
 });
 
-
 // =========================================================
 // PRUEBA DE CONEXIÃ“N
 // =========================================================
@@ -2345,7 +2195,6 @@ app.get(
           "SELECT NOW() AS fecha"
         );
 
-
       res.json({
 
         ok: true,
@@ -2360,7 +2209,6 @@ app.get(
           q.rows[0].fecha,
 
       });
-
 
     } catch (e) {
 
@@ -2384,7 +2232,6 @@ app.get(
   }
 );
 
-
 // =========================================================
 // RUTA PRINCIPAL
 // =========================================================
@@ -2402,7 +2249,6 @@ app.get(
   }
 );
 
-
 // =========================================================
 // MANEJO DE RUTA NO ENCONTRADA
 // =========================================================
@@ -2419,7 +2265,6 @@ app.use(
   }
 );
 
-
 // =========================================================
 // MANEJO GENERAL DE ERRORES
 // =========================================================
@@ -2432,7 +2277,6 @@ app.use(
       err
     );
 
-
     res
       .status(500)
       .json({
@@ -2441,7 +2285,6 @@ app.use(
       });
   }
 );
-
 
 // =========================================================
 // PREPARAR BASE DE DATOS (tablas + datos iniciales)
@@ -2465,7 +2308,7 @@ async function initDatabase() {
     );
    
 INSERT INTO cafeterias (id, nombre) VALUES
-  (1, 'CafetÃ­n 1'), (2, 'CafetÃ­n 2'), (3, 'CafetÃ­n 3')
+  (1, 'CafetÃ¬n 1'), (2, 'CafetÃ¬n 2'), (3, 'CafetÃ¬n 3')
   ON CONFLICT (id) DO NOTHING;
 
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -2518,7 +2361,7 @@ INSERT INTO cafeterias (id, nombre) VALUES
     ALTER TABLE contador_turno ADD COLUMN IF NOT EXISTS reiniciado_en TIMESTAMP NOT NULL DEFAULT '1970-01-01';
     INSERT INTO contador_turno (id, valor, reiniciado_en) VALUES (1,0,NOW()),(2,0,NOW()),(3,0,NOW()) ON CONFLICT (id) DO NOTHING;
   `);
-  // La cuenta histÃ³rica sigue perteneciendo al CafetÃ­n 1.
+  // La cuenta histÃ³rica sigue perteneciendo al CafetÃ¬n 1.
   await pool.query("UPDATE usuarios SET cafetin_id = 1 WHERE cafetin_id IS NULL");
   await pool.query("UPDATE productos SET cafetin_id = 1 WHERE cafetin_id IS NULL");
   await pool.query("UPDATE pedidos SET cafetin_id = 1 WHERE cafetin_id IS NULL");
@@ -2565,7 +2408,7 @@ if (!admin.rows.length) {
   // El administrador ya existe: no modificar su contraseÃ±a.
 }
     
-    // Restablecer la contraseÃ±a solo si se solicita explÃ­citamente.
+    // Restablecer la contraseÃ±a solo si se solicita explÃ¬citamente.
     if (process.env.RESET_ADMIN === "1") {
       if (!ADMIN_PASSWORD) {
         throw new Error(
@@ -2590,20 +2433,20 @@ if (!admin.rows.length) {
     }
 
  
-  // Administradores independientes por cafetÃ­n.
+  // Administradores independientes por cafetÃ¬n.
   // No modificar automÃ¡ticamente cuentas existentes.
   const administradoresCafetin = [
     {
       id: 2,
       email: process.env.ADMIN2_EMAIL || 'admin2@cafetin.edu.sv',
       password: process.env.ADMIN2_PASSWORD,
-      name: 'Administrador CafetÃ­n 2'
+      name: 'Administrador CafetÃ¬n 2'
     },
     {
       id: 3,
       email: process.env.ADMIN3_EMAIL || 'admin3@cafetin.edu.sv',
       password: process.env.ADMIN3_PASSWORD,
-      name: 'Administrador CafetÃ­n 3'
+      name: 'Administrador CafetÃ¬n 3'
     }
   ];
 
@@ -2660,7 +2503,7 @@ if (process.env.NODE_ENV !== "production") {
         (nombre, correo, contrasena, rol, saldo)
        VALUES ($1, $2, $3, $4, $5)`,
       [
-        "MarÃ­a HernÃ¡ndez",
+        "MarÃ¬a HernÃ¡ndez",
         demoEmail,
         demoPasswordHash,
         "estudiante",
@@ -2689,7 +2532,6 @@ if (process.env.NODE_ENV !== "production") {
       );
     }
   }
-
 
 
 // Cierre de la funciÃ³n initDatabase
@@ -2727,3 +2569,5 @@ async function start() {
 }
 
 start();
+
+
