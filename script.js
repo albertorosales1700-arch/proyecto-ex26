@@ -938,6 +938,17 @@ $$(".nav-pill[data-goto]")
 
 
 
+        if (destination === "view-my-orders") {
+          if (state.user?.rol !== "estudiante") {
+            toast("Esta sección es solo para estudiantes.");
+            return;
+          }
+          stopAdminRefresh();
+          await renderMyOrders();
+          showView(destination);
+          return;
+        }
+
         if (
           destination ===
           "view-menu"
@@ -1774,6 +1785,55 @@ if (placeOrderButton) {
 
 
 // =========================================================
+// MI PEDIDO: RECIBOS PENDIENTES E HISTORIAL
+// =========================================================
+
+async function renderMyOrders() {
+  if (!state.user || state.user.rol !== "estudiante") return;
+  const pending = $("#myOrdersPending");
+  const history = $("#myOrdersHistory");
+  if (!pending || !history) return;
+  pending.innerHTML = "<li>Cargando tus pedidos...</li>";
+  history.innerHTML = "";
+  try {
+    const { orders = [] } = await api("/api/my-orders?userId=" + encodeURIComponent(state.user.id));
+    const pendientes = orders.filter((o) => !o.confirmado_usuario);
+    const confirmados = orders.filter((o) => o.confirmado_usuario);
+    const renderOrder = (o, isHistory) => `
+      <li class="account-row" style="display:block;margin-bottom:14px">
+        <div class="account-info">
+          <strong>Recibo #${escapeHtml(o.number)} · ${escapeHtml(o.estado)}</strong>
+          <span>Fecha: ${escapeHtml(new Date(o.fecha).toLocaleString())}</span>
+        </div>
+        <ul class="confirm-items">${(o.items || []).map((it) => `<li><span>${Number(it.qty)} × ${escapeHtml(it.name)}</span><span>${money(Number(it.price) * Number(it.qty))}</span></li>`).join("")}
+          <li><strong>Total</strong><strong>${money(o.total)}</strong></li>
+        </ul>
+        ${!isHistory && o.estado === "Entregado" ? `<button type="button" class="btn btn--primary btn--sm" data-confirm-delivery="${escapeHtml(o.id)}">Confirmar que recibí el pedido</button>` : ""}
+        ${!isHistory && o.estado !== "Entregado" ? `<p class="view-sub">Tu recibo permanecerá aquí hasta que se entregue y confirmes la recepción.</p>` : ""}
+        ${isHistory ? `<p class="view-sub">Recepción confirmada: ${o.fecha_confirmacion_usuario ? escapeHtml(new Date(o.fecha_confirmacion_usuario).toLocaleString()) : "Sí"}</p>` : ""}
+      </li>`;
+    pending.innerHTML = pendientes.length ? pendientes.map((o) => renderOrder(o, false)).join("") : "<li>No tienes pedidos pendientes de confirmar.</li>";
+    history.innerHTML = confirmados.length ? confirmados.map((o) => renderOrder(o, true)).join("") : "<li>Aún no hay pedidos en tu historial.</li>";
+    pending.querySelectorAll("[data-confirm-delivery]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!window.confirm("¿Confirmas que recibiste este pedido? Después pasará al historial.")) return;
+        btn.disabled = true;
+        try {
+          await api(`/api/order/${encodeURIComponent(btn.dataset.confirmDelivery)}/confirm`, {
+            method: "POST", body: JSON.stringify({ userId: state.user.id })
+          });
+          toast("Entrega confirmada. El recibo pasó al historial.");
+          await renderMyOrders();
+        } catch (e) { btn.disabled = false; console.error("Error confirmando entrega:", e); }
+      });
+    });
+  } catch (e) {
+    pending.innerHTML = "<li>No se pudieron cargar tus pedidos. Intenta de nuevo.</li>";
+    console.error("Error cargando Mi pedido:", e);
+  }
+}
+
+// =========================================================
 // CONFIRMACIÓN
 // =========================================================
 
@@ -2090,7 +2150,7 @@ async function checkCurrentOrderStatus() {
     const { order } =
       await api(
         "/api/order/" +
-        state.currentOrderId
+        state.currentOrderId + "?userId=" + encodeURIComponent(state.user.id)
       );
 
 
@@ -3173,6 +3233,7 @@ async function renderAccounts() {
 
             const esAdmin = a.rol === "cafetin";
             const otraCafeteria = Number(a.cafetin_id || 1) !== Number(state.cafeteriaId || 1);
+            const activa = a.activo !== false;
 
 
             return `
@@ -3207,6 +3268,7 @@ async function renderAccounts() {
                     Cafetín ${Number(a.cafetin_id || 1)}
                     ·
                     ${Number(a.pedidos || 0)} pedido(s)
+                    · ${activa ? "Activa" : "Desactivada"}
 
                   </span>
 
@@ -3229,18 +3291,23 @@ async function renderAccounts() {
                       0
                     ).toFixed(2)}"
                     data-wallet="${id}"
-                    ${(esAdmin || otraCafeteria) ? "disabled" : ""}
+                    ${(esAdmin || otraCafeteria || !activa) ? "disabled" : ""}
                   >
 
 
                   <button
                     class="btn btn--primary btn--sm"
                     data-savewallet="${id}"
-                    ${(esAdmin || otraCafeteria) ? "disabled" : ""}
+                    ${(esAdmin || otraCafeteria || !activa) ? "disabled" : ""}
                   >
                     ${esAdmin ? "Admin" : (otraCafeteria ? "Otro cafetín" : "Guardar")}
 
                   </button>
+
+                  ${!esAdmin && !otraCafeteria && activa ? `
+                    <button type="button" class="btn btn--sm" data-resetpassword="${id}">Restablecer contraseña</button>
+                    <button type="button" class="btn btn--sm" data-deleteaccount="${id}">Eliminar usuario</button>
+                  ` : ""}
 
                 </div>
 
@@ -3371,6 +3438,49 @@ async function renderAccounts() {
         }
       );
 
+
+    // Desactivar usuarios sin borrar su historial de compras.
+    list.querySelectorAll("[data-deleteaccount]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = String(btn.dataset.deleteaccount);
+        const account = state.accounts.find((a) => String(a.id) === id);
+        if (!account || !window.confirm(`¿Deseas desactivar la cuenta de ${account.nombre}? Su historial de pedidos se conservará.`)) return;
+        try {
+          await api(`/api/account/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            body: JSON.stringify({ adminId: state.user.id })
+          });
+          toast("Usuario desactivado correctamente.");
+          await renderAccounts();
+        } catch (e) {
+          console.error("Error eliminando usuario:", e);
+        }
+      });
+    });
+
+    // Restablecer contraseña sin consultar ni mostrar la anterior.
+    list.querySelectorAll("[data-resetpassword]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = String(btn.dataset.resetpassword);
+        const account = state.accounts.find((a) => String(a.id) === id);
+        if (!account) return;
+        const temporaryPassword = window.prompt(`Escribe una contraseña temporal de al menos 8 caracteres para ${account.nombre}. La contraseña anterior no se puede consultar:`);
+        if (temporaryPassword === null) return;
+        if (temporaryPassword.length < 8) {
+          toast("Usa al menos 8 caracteres.");
+          return;
+        }
+        try {
+          await api(`/api/account/${encodeURIComponent(id)}/reset-password`, {
+            method: "POST",
+            body: JSON.stringify({ adminId: state.user.id, newPassword: temporaryPassword })
+          });
+          toast("Contraseña restablecida. Comunica la temporal directamente al usuario.");
+        } catch (e) {
+          console.error("Error restableciendo contraseña:", e);
+        }
+      });
+    });
 
   } catch (e) {
 
