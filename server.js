@@ -33,7 +33,7 @@ const pool = new Pool(
         user: process.env.PGUSER || "postgres",
         host: process.env.PGHOST || "127.0.0.1",
         database: process.env.PGDATABASE || "tiquete",
-        password: process.env.PGPASSWORD || "tiquete123",
+        password: process.env.PGPASSWORD,
         port: Number(process.env.PGPORT) || 5432,
       }
 );
@@ -203,6 +203,7 @@ app.post("/api/login", async (req, res) => {
       FROM usuarios
       WHERE lower(correo) = lower($1)
         AND cafetin_id = $2
+        AND activo = TRUE
       LIMIT 1
       `,
       [email.trim(), idCafeteria]
@@ -441,7 +442,7 @@ app.get(
             saldo,
             cafetin_id
           FROM usuarios
-          WHERE id = $1
+          WHERE id = $1 AND activo = TRUE
           `,
           [req.params.id]
         );
@@ -1458,6 +1459,8 @@ app.get(
             p.total,
             p.estado,
             p.fecha,
+            p.confirmado_usuario,
+            p.fecha_confirmacion_usuario,
             u.nombre AS student_name,
             u.correo
           FROM pedidos p
@@ -1470,16 +1473,17 @@ app.get(
           ]
         );
 
-      if (
-        !pedidoQuery.rows.length
-      ) {
+      if (!pedidoQuery.rows.length) {
+        return res.status(404).json({ error: "Pedido no encontrado." });
+      }
 
-        return res
-          .status(404)
-          .json({
-            error:
-              "Pedido no encontrado.",
-          });
+      const solicitanteId = Number(req.query.userId || 0);
+      const solicitanteAdminId = Number(req.query.adminId || 0);
+      const filaPedido = pedidoQuery.rows[0];
+      const esPropietario = solicitanteId > 0 && Number(filaPedido.usuario_id) === solicitanteId;
+      const esAdmin = solicitanteAdminId > 0 && await validateAdmin(pool, solicitanteAdminId);
+      if (!esPropietario && !esAdmin) {
+        return res.status(403).json({ error: "No tienes permiso para consultar este pedido." });
       }
 
       const o =
@@ -1522,6 +1526,9 @@ app.get(
 
         fecha:
           o.fecha,
+
+        confirmado_usuario: Boolean(o.confirmado_usuario),
+        fecha_confirmacion_usuario: o.fecha_confirmacion_usuario || null,
 
         student_name:
           o.student_name,
@@ -1574,6 +1581,79 @@ app.get(
     }
   }
 );
+
+// =========================================================
+// PEDIDOS DEL ESTUDIANTE Y CONFIRMACIÓN DE ENTREGA
+// =========================================================
+
+app.get("/api/my-orders", async (req, res) => {
+  try {
+    const userId = Number(req.query.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "Usuario no válido." });
+    }
+    const user = await pool.query(
+      "SELECT id, rol, activo FROM usuarios WHERE id = $1",
+      [userId]
+    );
+    if (!user.rows.length || user.rows[0].activo === false || normalizeRole(user.rows[0].rol) !== "estudiante") {
+      return res.status(403).json({ error: "No se puede consultar esta cuenta." });
+    }
+    const q = await pool.query(
+      `SELECT id, numero_turno, usuario_id, total, estado, fecha,
+              confirmado_usuario, fecha_confirmacion_usuario
+       FROM pedidos WHERE usuario_id = $1 ORDER BY fecha DESC`,
+      [userId]
+    );
+    const orders = await Promise.all(q.rows.map(async (o) => {
+      const d = await pool.query(
+        "SELECT producto, precio, cantidad FROM pedidos_detalle WHERE pedido_id = $1 ORDER BY id",
+        [o.id]
+      );
+      return {
+        id: o.id, number: o.numero_turno, usuario_id: o.usuario_id,
+        total: r2(o.total), estado: o.estado, fecha: o.fecha,
+        confirmado_usuario: Boolean(o.confirmado_usuario),
+        fecha_confirmacion_usuario: o.fecha_confirmacion_usuario || null,
+        items: d.rows.map((item) => ({ name: item.producto, price: Number(item.precio), qty: Number(item.cantidad) }))
+      };
+    }));
+    return res.json({ ok: true, orders });
+  } catch (e) {
+    console.error("Error obteniendo pedidos del estudiante:", e);
+    return res.status(500).json({ error: "No se pudieron cargar tus pedidos." });
+  }
+});
+
+app.post("/api/order/:id/confirm", async (req, res) => {
+  try {
+    const userId = Number((req.body || {}).userId);
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(userId) || userId <= 0 || !Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ error: "Identificadores no válidos." });
+    }
+    const q = await pool.query(
+      `UPDATE pedidos SET confirmado_usuario = TRUE, fecha_confirmacion_usuario = NOW()
+       WHERE id = $1 AND usuario_id = $2 AND estado = 'Entregado' AND confirmado_usuario = FALSE
+       RETURNING id, estado, confirmado_usuario, fecha_confirmacion_usuario`,
+      [orderId, userId]
+    );
+    if (!q.rows.length) {
+      const check = await pool.query("SELECT usuario_id, estado, confirmado_usuario FROM pedidos WHERE id = $1", [orderId]);
+      if (!check.rows.length || Number(check.rows[0].usuario_id) !== userId) {
+        return res.status(404).json({ error: "Pedido no encontrado para esta cuenta." });
+      }
+      if (check.rows[0].estado !== "Entregado") {
+        return res.status(409).json({ error: "Solo puedes confirmar un pedido que ya figure como entregado." });
+      }
+      return res.status(409).json({ error: "Este pedido ya fue confirmado." });
+    }
+    return res.json({ ok: true, pedido: q.rows[0] });
+  } catch (e) {
+    console.error("Error confirmando entrega:", e);
+    return res.status(500).json({ error: "No se pudo confirmar la entrega." });
+  }
+});
 
 // =========================================================
 // OBTENER PEDIDOS â€” ADMIN
@@ -1900,6 +1980,7 @@ const q = await pool.query(
     u.rol,
     u.saldo,
     u.cafetin_id,
+    u.activo,
     COUNT(p.id) AS pedidos
   FROM usuarios u
  LEFT JOIN pedidos p
@@ -1932,6 +2013,7 @@ WHERE u.cafetin_id = $1
 
             saldo: Number(a.saldo || 0),
             cafetin_id: Number(a.cafetin_id || 1),
+            activo: a.activo !== false,
 
             pedidos:
               Number(
@@ -2135,6 +2217,71 @@ app.patch(
     }
   }
 );
+
+// =========================================================
+// DESACTIVAR CUENTA Y RESTABLECER CONTRASEÑA — ADMIN
+// =========================================================
+
+app.delete("/api/account/:id", async (req, res) => {
+  try {
+    const { adminId } = req.body || {};
+    if (!(await validateAdmin(pool, adminId))) {
+      return res.status(403).json({ error: "Solo el administrador puede eliminar usuarios." });
+    }
+    const adminCafetinId = await getAdminCafetinId(pool, adminId);
+    const targetId = Number(req.params.id);
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ error: "Identificador de usuario no válido." });
+    }
+    if (targetId === Number(adminId)) {
+      return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
+    }
+    const target = await pool.query(
+      "SELECT id, nombre, rol, activo FROM usuarios WHERE id = $1 AND cafetin_id = $2",
+      [targetId, adminCafetinId]
+    );
+    if (!target.rows.length) return res.status(404).json({ error: "Usuario no encontrado en este cafetín." });
+    if (normalizeRole(target.rows[0].rol) === "cafetin") {
+      return res.status(403).json({ error: "No se permite eliminar cuentas de administrador desde este panel." });
+    }
+    const updated = await pool.query(
+      "UPDATE usuarios SET activo = FALSE WHERE id = $1 AND cafetin_id = $2 RETURNING id, nombre, activo",
+      [targetId, adminCafetinId]
+    );
+    return res.json({ ok: true, user: updated.rows[0], mensaje: "Cuenta desactivada. El historial de pedidos se conserva." });
+  } catch (e) {
+    console.error("Error desactivando usuario:", e);
+    return res.status(500).json({ error: "No se pudo eliminar el usuario." });
+  }
+});
+
+app.post("/api/account/:id/reset-password", async (req, res) => {
+  try {
+    const { adminId, newPassword } = req.body || {};
+    if (!(await validateAdmin(pool, adminId))) {
+      return res.status(403).json({ error: "Solo el administrador puede restablecer contraseñas." });
+    }
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      return res.status(400).json({ error: "La contraseña temporal debe tener al menos 8 caracteres." });
+    }
+    const adminCafetinId = await getAdminCafetinId(pool, adminId);
+    const targetId = Number(req.params.id);
+    const target = await pool.query(
+      "SELECT id, rol FROM usuarios WHERE id = $1 AND cafetin_id = $2 AND activo = TRUE",
+      [targetId, adminCafetinId]
+    );
+    if (!target.rows.length) return res.status(404).json({ error: "Usuario activo no encontrado." });
+    if (normalizeRole(target.rows[0].rol) === "cafetin") {
+      return res.status(403).json({ error: "No se pueden restablecer cuentas de administrador desde este panel." });
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await pool.query("UPDATE usuarios SET contrasena = $1 WHERE id = $2", [passwordHash, targetId]);
+    return res.json({ ok: true, mensaje: "Contraseña restablecida. Comunica la contraseña temporal directamente al usuario." });
+  } catch (e) {
+    console.error("Error restableciendo contraseña:", e);
+    return res.status(500).json({ error: "No se pudo restablecer la contraseña." });
+  }
+});
 
 // =========================================================
 // TURNOS
@@ -2356,6 +2503,9 @@ INSERT INTO cafeterias (id, nombre) VALUES
   // MigraciÃ³n compatible con la base existente.
   await pool.query(`
     ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cafetin_id INTEGER NOT NULL DEFAULT 1 REFERENCES cafeterias(id);
+    ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS confirmado_usuario BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS fecha_confirmacion_usuario TIMESTAMP NULL;
     ALTER TABLE productos ADD COLUMN IF NOT EXISTS cafetin_id INTEGER NOT NULL DEFAULT 1 REFERENCES cafeterias(id);
     ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS cafetin_id INTEGER NOT NULL DEFAULT 1 REFERENCES cafeterias(id);
     ALTER TABLE contador_turno ADD COLUMN IF NOT EXISTS reiniciado_en TIMESTAMP NOT NULL DEFAULT '1970-01-01';

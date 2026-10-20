@@ -67,7 +67,15 @@
         data-goto="view-menu"
         data-role="estudiante"
       >
-        🍴 Mi pedido
+        🍴 Comprar
+      </button>
+
+      <button
+        class="nav-pill"
+        data-goto="view-my-orders"
+        data-role="estudiante"
+      >
+        🧾 Mi pedido
       </button>
 
 
@@ -443,6 +451,27 @@
 
     </section>
 
+
+    <!-- ===================== MI PEDIDO / RECIBOS ===================== -->
+    <section id="view-my-orders" class="view">
+      <div class="view-head">
+        <div>
+          <h1>Mi pedido</h1>
+          <p class="view-sub">Consulta tus recibos y confirma cuando recibas tu compra.</p>
+        </div>
+        <button type="button" class="btn btn--primary" id="btnRefreshMyOrders" onclick="renderMyOrders()">Actualizar</button>
+      </div>
+      <div class="menu-editor__panel">
+        <h2>Pedidos pendientes</h2>
+        <p class="view-sub">Los pedidos entregados permanecerán aquí hasta que confirmes la recepción.</p>
+        <ul id="myOrdersPending" class="accounts-list"><li>Tus pedidos aparecerán aquí.</li></ul>
+      </div>
+      <div class="menu-editor__panel" style="margin-top:20px">
+        <h2>Historial de recibos</h2>
+        <p class="view-sub">Los pedidos confirmados se conservan como historial.</p>
+        <ul id="myOrdersHistory" class="accounts-list"><li>Aún no hay pedidos en tu historial.</li></ul>
+      </div>
+    </section>
 
     <!-- ===================== CONFIRMACIÓN ===================== -->
 
