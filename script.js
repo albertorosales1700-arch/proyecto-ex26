@@ -45,42 +45,39 @@ const escapeHtml = (s) =>
 // API
 // =========================================================
 
-async function api(
-  url,
-  options = {}
-) {
-
+async function api(url, options = {}) {
   try {
-
     const config = {
       ...options,
-
       headers: {
-        "Content-Type":
-          "application/json",
-
+        "Content-Type": "application/json",
         ...(options.headers || {}),
+        ...(
+          sessionStorage.getItem("tiquete_token")
+            ? {
+                Authorization: `Bearer ${sessionStorage.getItem("tiquete_token")}`,
+              }
+            : {}
+        ),
       },
     };
 
-
     const API_BASE = String(
-  window.TIQUETE_API_BASE || ""
-).replace(/\/$/, "");
+      window.TIQUETE_API_BASE || ""
+    ).replace(/\/$/, "");
 
-const apiUrl = (url) => {
-  if (/^https?:\/\//i.test(url)) return url;
+    const apiUrl = (url) => {
+      if (/^https?:\/\//i.test(url)) return url;
 
-  return API_BASE + (
-    url.startsWith("/") ? url : "/" + url
-  );
-};
+      return API_BASE + (
+        url.startsWith("/") ? url : "/" + url
+      );
+    };
 
-const response = await fetch(
-  apiUrl(url),
-  config
-);
-
+    const response = await fetch(
+      apiUrl(url),
+      config
+    );
 
     let data = {};
 
@@ -196,6 +193,15 @@ async function init() {
       "tiquete_user_id"
     );
 
+const sessionToken =
+  sessionStorage.getItem("tiquete_token");
+
+if (!sessionToken) {
+  sessionStorage.removeItem("tiquete_user_id");
+  sessionStorage.removeItem("tiquete_cafetin_id");
+  return;
+}
+
 
   if (!sessionId) {
     return;
@@ -235,7 +241,8 @@ async function init() {
     sessionStorage.removeItem(
       "tiquete_user_id"
     );
-
+ sessionStorage.removeItem("tiquete_token");
+  sessionStorage.removeItem("tiquete_cafetin_id");
 
     state.user = null;
   }
@@ -653,6 +660,11 @@ if (loginForm) {
               }
             );
 
+if (!data.token) {
+  throw new Error("El servidor no entregó el token de sesión.");
+}
+
+sessionStorage.setItem("tiquete_token", data.token);
 
           state.user = data.user;
           state.cafeteriaId = Number(data.user.cafetin_id || data.user.cafeteria_id || $("#cafetinSelect")?.value || 1);
@@ -707,6 +719,11 @@ if (loginForm) {
           );
 
 
+if (!data.token) {
+  throw new Error("El servidor no entregó el token de sesión.");
+}
+
+sessionStorage.setItem("tiquete_token", data.token);
         state.user = data.user;
         state.cafeteriaId = Number(data.user.cafetin_id || data.user.cafeteria_id || $("#cafetinSelect")?.value || 1);
         sessionStorage.setItem("tiquete_cafetin_id", state.cafeteriaId);
@@ -771,6 +788,7 @@ if (btnLogout) {
 
 
       sessionStorage.removeItem("tiquete_user_id");
+      sessionStorage.removeItem("tiquete_token");
       sessionStorage.removeItem("tiquete_cafetin_id");
 
 

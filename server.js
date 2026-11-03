@@ -9,7 +9,7 @@ const path = require("path");
 const os = require("os");
 
 const bcrypt = require("bcryptjs");
-
+const sesion = require("./mejoras/sesion.js");
 const app = express();
 
 const PORT = Number(process.env.PORT) || 8123;
@@ -44,6 +44,8 @@ const pool = new Pool(
 
 app.use(express.json());
 
+// Seguridad: verificar la sesión en todas las rutas privadas.
+app.use(sesion.middleware(pool));
 // Solo se publican los archivos del frontend.
 // (Antes se servía toda la carpeta y cualquiera podía descargar
 //  server.js con la contraseña de la base de datos.)
