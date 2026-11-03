@@ -165,7 +165,7 @@ async function getAdminCafetinId(db, adminId) {
 
 // Mejoras: estadísticas, buzón de opiniones, imágenes y costos de productos.
 // Se registran ANTES de las rutas de menú para que reemplacen a las anteriores.
-const mejoras = require("./mejoras.routes");
+const mejoras = require("./mejoras/mejoras.routes (1).js");
 mejoras(app, pool, { validateAdmin, getAdminCafetinId, normalizeRole });
 
 // =========================================================
