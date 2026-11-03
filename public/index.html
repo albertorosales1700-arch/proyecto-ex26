@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Tiquete — Preventa del cafetín</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- ===================== TOPBAR ===================== -->
+
+  <header class="topbar">
+
+    <div class="brand">
+
+      <img
+        src="logo.inti.jpeg"
+        alt="Logo INTI"
+        class="brand-logo"
+      >
+
+      <div class="brand-text">
+
+        <span class="brand-name">
+          TECNICO
+        </span>
+
+        <span class="brand-sub">
+          Cafetín Institucional INTI
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <nav
+      class="topnav"
+      id="topnav"
+      hidden
+    >
+
+      <button
+        class="nav-pill nav-pill--active"
+        data-goto="view-login"
+      >
+        🏠 Inicio
+      </button>
+
+
+      <button
+        class="nav-pill"
+        data-goto="view-menu"
+        data-role="estudiante"
+      >
+        🍴 Mi pedido
+      </button>
+
+
+      <button
+        class="nav-pill"
+        data-goto="view-admin"
+        data-role="cafetin"
+      >
+        ▦ Panel del cafetín
+      </button>
+
+
+      <button class="nav-pill" id="btnProfile" type="button">👤 Mi perfil</button>
+
+      <button
+        class="nav-pill nav-pill--ghost"
+        id="btnLogout"
+      >
+        ⇥ Salir
+      </button>
+
+    </nav>
+
+  </header>
+
+
+  <main>
+
+    <!-- ===================== LOGIN ===================== -->
+
+    <section
+      id="view-login"
+      class="view is-active"
+    >
+
+      <div class="login-grid">
+
+
+        <div class="ticket-hero">
+
+          <img
+            src="logo.inti.jpeg"
+            alt="Logo INTI"
+            class="hero-logo"
+          >
+
+
+          <p class="hero-brand">
+            Cafetín Institucional
+          </p>
+
+
+          <img
+            src="cocodrilo.png"
+            alt="Mascota cocodrilo"
+            class="hero-mascot"
+          >
+
+
+          <div
+            class="ticket-hero__stub"
+            aria-hidden="true"
+          >
+
+            <span class="ticket-hero__label">
+              Próximo turno
+            </span>
+
+            <span
+              class="ticket-hero__number"
+              id="heroNumber"
+            >
+              1
+            </span>
+
+            <span class="ticket-hero__label">
+              Retira sin hacer fila
+            </span>
+
+          </div>
+
+
+          <p class="ticket-hero__caption">
+            Pide antes del timbre. Retira en la
+            ventanilla de entregas rápidas.
+          </p>
+
+        </div>
+
+
+        <!-- LOGIN -->
+
+        <div class="login-card">
+
+          <h1>
+            Ingresa a tu cuenta
+          </h1>
+
+
+          <p class="login-sub">
+            Usa tu correo institucional para
+            pedir tu refrigerio o para atender
+            el cafetín.
+          </p>
+
+
+          <div
+            class="role-switch"
+            role="tablist"
+            aria-label="Tipo de cuenta"
+          >
+
+            <button
+              type="button"
+              class="role-btn is-active"
+              data-role="estudiante"
+              role="tab"
+              aria-selected="true"
+            >
+              Estudiante
+            </button>
+
+
+            <button
+              type="button"
+              class="role-btn"
+              data-role="cafetin"
+              role="tab"
+              aria-selected="false"
+            >
+              Administrador
+            </button>
+
+          </div>
+
+
+          <label class="field" id="cafetinField">
+            <span>Cafetín al que deseas entrar</span>
+            <select id="cafetinSelect" required>
+              <option value="1">Cafetín 1</option>
+              <option value="2">Cafetín 2</option>
+              <option value="3">Cafetín 3</option>
+            </select>
+          </label>
+
+          <div
+            class="auth-switch"
+            id="authSwitch"
+            role="tablist"
+            aria-label="Acción"
+          >
+
+            <button
+              type="button"
+              class="auth-btn is-active"
+              data-auth="login"
+              role="tab"
+              aria-selected="true"
+            >
+              Iniciar sesión
+            </button>
+
+
+            <button
+              type="button"
+              class="auth-btn"
+              data-auth="register"
+              role="tab"
+              aria-selected="false"
+            >
+              Crear cuenta
+            </button>
+
+          </div>
+
+
+          <form
+            id="loginForm"
+            novalidate
+          >
+
+            <label
+              class="field"
+              id="fieldName"
+              hidden
+            >
+
+              <span>
+                Nombre completo
+              </span>
+
+              <input
+                type="text"
+                id="loginName"
+                placeholder="Ej. María Hernández"
+              >
+
+            </label>
+
+
+            <label class="field">
+
+              <span>
+                Correo institucional
+              </span>
+
+              <input
+                type="email"
+                id="loginEmail"
+                placeholder="ej. maria.hernandez@colegio.edu.sv"
+                required
+              >
+
+            </label>
+
+
+            <label class="field">
+
+              <span>
+                Contraseña
+              </span>
+
+              <input
+                type="password"
+                id="loginPass"
+                placeholder="••••••••"
+                required
+                minlength="4"
+              >
+
+            </label>
+
+
+            <button
+              type="submit"
+              class="btn btn--primary btn--block"
+              id="btnSubmit"
+            >
+              Entrar
+            </button>
+
+          </form>
+
+
+          <p
+            class="login-note"
+            id="loginNote"
+          >
+            Demo estudiante:
+            maria@colegio.edu.sv / 1234
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================== MENÚ + CARRITO ===================== -->
+
+    <section
+      id="view-menu"
+      class="view"
+    >
+
+      <div class="view-head">
+
+        <div>
+
+          <h1>
+            Menú de hoy
+          </h1>
+
+          <p class="view-sub">
+            Selecciona tus productos y genera
+            tu pedido antes de que suene el timbre.
+          </p>
+
+        </div>
+
+
+        <div class="wallet">
+
+          <span class="wallet-label">
+            Billetera virtual
+          </span>
+
+          <span
+            class="wallet-amount"
+            id="walletAmount"
+          >
+            $0.00
+          </span>
+
+          <span
+            class="wallet-owner"
+            id="walletOwner"
+          ></span>
+
+        </div>
+
+      </div>
+
+
+      <div class="menu-layout">
+
+
+        <div
+          class="menu-grid"
+          id="menuGrid"
+          aria-label="Productos disponibles"
+        ></div>
+
+
+        <!-- CARRITO -->
+
+        <aside
+          class="receipt"
+          aria-label="Tu pedido"
+        >
+
+          <div class="receipt-head">
+
+            <span class="receipt-title">
+              Tu recibo
+            </span>
+
+            <span
+              class="receipt-tear"
+              aria-hidden="true"
+            ></span>
+
+          </div>
+
+
+          <ul
+            class="receipt-list"
+            id="cartList"
+          >
+
+            <li class="receipt-empty">
+              Aún no has agregado productos.
+            </li>
+
+          </ul>
+
+
+          <div class="receipt-total">
+
+            <span>
+              Total
+            </span>
+
+            <span id="cartTotal">
+              $0.00
+            </span>
+
+          </div>
+
+
+          <button
+            class="btn btn--primary btn--block"
+            id="btnPlaceOrder"
+            disabled
+          >
+            Generar pedido
+          </button>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================== CONFIRMACIÓN ===================== -->
+
+    <section
+      id="view-confirm"
+      class="view"
+    >
+
+      <div class="confirm-wrap">
+
+
+        <div class="big-ticket">
+
+          <span class="big-ticket__eyebrow">
+            Pedido confirmado
+          </span>
+
+
+          <span
+            class="big-ticket__number"
+            id="confirmNumber"
+          >
+            —
+          </span>
+
+
+          <div
+            class="status-track"
+            id="statusTrack"
+          >
+
+            <div
+              class="status-step is-active"
+              data-status="Pendiente"
+            >
+
+              <span class="status-dot"></span>
+
+              <span>
+                Pendiente
+              </span>
+
+            </div>
+
+
+            <div
+              class="status-step"
+              data-status="Listo para retirar"
+            >
+
+              <span class="status-dot"></span>
+
+              <span>
+                Listo para retirar
+              </span>
+
+            </div>
+
+
+            <div
+              class="status-step"
+              data-status="Entregado"
+            >
+
+              <span class="status-dot"></span>
+
+              <span>
+                Entregado
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <p
+            class="big-ticket__hint"
+            id="confirmHint"
+          >
+            El cafetín está preparando tu pedido.
+          </p>
+
+        </div>
+
+
+        <ul
+          class="confirm-items"
+          id="confirmItems"
+        ></ul>
+
+
+        <button
+          class="btn btn--outline"
+          id="btnNewOrder"
+        >
+          Hacer otro pedido
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================== PERFIL ===================== -->
+    <section id="view-profile" class="view">
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">U</div>
+        <h1 id="profileName">Mi perfil</h1>
+        <p class="view-sub">Información de tu cuenta</p>
+        <dl class="profile-details">
+          <div><dt>Correo</dt><dd id="profileEmail">—</dd></div>
+          <div><dt>Tipo de cuenta</dt><dd id="profileRole">—</dd></div>
+          <div><dt>Cafetín asignado</dt><dd id="profileCafetin">—</dd></div>
+          <div><dt>Saldo virtual</dt><dd id="profileBalance">—</dd></div>
+        </dl>
+        <button class="btn btn--outline" id="btnProfileBack" type="button">Volver</button>
+      </div>
+    </section>
+
+    <!-- ===================== ADMIN ===================== -->
+
+    <section
+      id="view-admin"
+      class="view"
+    >
+
+      <div
+        class="view-head view-head--dark"
+      >
+
+        <div>
+
+          <h1>
+            Panel del cafetín
+          </h1>
+
+          <p class="view-sub view-sub--dark">
+            Pedidos en tiempo real.
+            Actualiza el estado conforme avanzas.
+          </p>
+
+        </div>
+
+
+        <div class="view-head__actions">
+
+          <span class="turn-chip">
+            Próximo turno:
+            <strong id="adminNextTurn">1</strong>
+          </span>
+
+
+          <button
+            class="btn btn--yellow"
+            id="btnResetTurn"
+          >
+            Reiniciar turnos
+          </button>
+
+
+          <button
+            class="btn btn--ghost-dark"
+            id="btnAccounts"
+          >
+            Usuarios y cuentas
+          </button>
+
+
+          <button
+            class="btn btn--ghost-dark"
+            id="btnEditMenu"
+          >
+            Editar menú del día
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- TABLERO -->
+
+      <div
+        class="board"
+        id="board"
+      >
+
+        <div
+          class="board-col"
+          data-status="Pendiente"
+        >
+
+          <h2 class="board-col__title">
+
+            Pendiente
+
+            <span
+              class="count"
+              id="countPendiente"
+            >
+              0
+            </span>
+
+          </h2>
+
+
+          <div
+            class="board-col__list"
+            id="colPendiente"
+          ></div>
+
+        </div>
+
+
+        <div
+          class="board-col"
+          data-status="Listo para retirar"
+        >
+
+          <h2 class="board-col__title">
+
+            Listo para retirar
+
+            <span
+              class="count"
+              id="countListo"
+            >
+              0
+            </span>
+
+          </h2>
+
+
+          <div
+            class="board-col__list"
+            id="colListo"
+          ></div>
+
+        </div>
+
+
+        <div
+          class="board-col"
+          data-status="Entregado"
+        >
+
+          <h2 class="board-col__title">
+
+            Entregado
+
+            <span
+              class="count"
+              id="countEntregado"
+            >
+              0
+            </span>
+
+          </h2>
+
+
+          <div
+            class="board-col__list"
+            id="colEntregado"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================== EDITOR MENÚ ===================== -->
+
+      <div
+        class="menu-editor"
+        id="menuEditor"
+        hidden
+      >
+
+        <div class="menu-editor__panel">
+
+          <div class="menu-editor__head">
+
+            <h2>
+              Menú del día
+            </h2>
+
+            <button
+              class="btn btn--ghost-dark"
+              id="btnCloseMenu"
+            >
+              Cerrar
+            </button>
+
+          </div>
+
+
+          <ul
+            class="menu-editor__list"
+            id="menuEditorList"
+          ></ul>
+
+
+          <form
+            class="menu-editor__add"
+            id="addItemForm"
+          >
+
+            <input
+              type="text"
+              id="newItemName"
+              placeholder="Nombre del producto"
+              required
+            >
+
+
+            <input
+              type="number"
+              id="newItemPrice"
+              placeholder="Precio"
+              step="0.05"
+              min="0"
+              required
+            >
+
+
+            <button
+              type="submit"
+              class="btn btn--primary"
+            >
+              Agregar
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================== CUENTAS ===================== -->
+
+      <div
+        class="menu-editor"
+        id="accountsPanel"
+        hidden
+      >
+
+        <div class="menu-editor__panel">
+
+          <div class="menu-editor__head">
+
+            <h2>
+              Cuentas y saldos
+            </h2>
+
+            <button
+              class="btn btn--ghost-dark"
+              id="btnCloseAccounts"
+            >
+              Cerrar
+            </button>
+
+          </div>
+
+
+          <p
+            class="accounts-summary"
+            id="accountsSummary"
+          >
+            0 cuentas registradas
+          </p>
+
+
+          <ul
+            class="accounts-list"
+            id="accountsList"
+          ></ul>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+
+
+<!-- ===================== FOOTER ===================== -->
+
+<footer class="site-footer">
+
+  <div class="site-footer__inner">
+
+    <div class="sf-col sf-brand">
+      <span class="sf-logo.inti">TECNICO</span>
+      <span class="sf-sub">Cafetín Institucional INTI</span>
+
+      <a class="sf-contact" href="tel:+50377545899">
+        <span class="sf-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.6a1 1 0 0 1-.25 1z"/></svg></span>
+        (+503) 7754-5899
+      </a>
+
+      <a class="sf-contact" href="mailto:educacion@mined.gob.sv">
+        <span class="sf-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></span>
+        educacion@mined.gob.sv
+      </a>
+    </div>
+
+    <div class="sf-col">
+      <h3 class="sf-title">Enlaces</h3>
+      <a class="sf-link" href="https://sites.google.com/inti.edu.sv/nuevoingreso/inicio" target="_blank" rel="noopener">Nuevo Ingreso INTI</a>
+      <a class="sf-link" href="https://www.mined.gob.sv" target="_blank" rel="noopener">Ministerio de Educación</a>
+      <a class="sf-link" href="https://www.google.com" target="_blank" rel="noopener">Google</a>
+    </div>
+
+    <div class="sf-col">
+      <h3 class="sf-title">Redes Sociales</h3>
+      <div class="sf-social">
+        <a class="sf-icon sf-icon--lg" href="https://www.facebook.com/tecnicosinti/" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8V6.5c0-.7.3-1 1.1-1H17V2h-2.6C11.3 2 10 3.8 10 6.2V8H8v3.5h2V22h4v-10.5h2.7L17 8z"/></svg></a>
+        <a class="sf-icon sf-icon--lg" href="https://www.instagram.com/inti.edu.sv/" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm0 2A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.2-3.2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="site-footer__bar">
+    © <span id="footYear"></span> Cafetín Institucional INTI — Preventa y fila rápida
+  </div>
+
+</footer>
+
+<div
+  class="toast-stack"
+  id="toastStack"
+  aria-live="polite"
+></div>
+
+
+<script src="config.js"></script>
+<script src="script.js"></script>
+
+
+</body>
+</html>

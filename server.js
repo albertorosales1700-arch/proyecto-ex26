@@ -1,5 +1,5 @@
 // =========================================================
-// TIQUETE â€” Servidor
+// TIQUETE — Servidor
 // Node.js + Express + PostgreSQL
 // =========================================================
 
@@ -15,7 +15,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 8123;
 
 // =========================================================
-// CONEXIÃ“N A POSTGRESQL
+// CONEXIÓN A POSTGRESQL
 // =========================================================
 
 // En un hosting (Render, Railway, Neon...) se usa DATABASE_URL.
@@ -39,14 +39,14 @@ const pool = new Pool(
 );
 
 // =========================================================
-// CONFIGURACIÃ“N
+// CONFIGURACIÓN
 // =========================================================
 
 app.use(express.json());
 
 // Solo se publican los archivos del frontend.
-// (Antes se servÃ¬a toda la carpeta y cualquiera podÃ¬a descargar
-//  server.js con la contraseÃ±a de la base de datos.)
+// (Antes se servía toda la carpeta y cualquiera podía descargar
+//  server.js con la contraseña de la base de datos.)
 const PUBLIC_FILES = new Set([
   "/index.html",
   "/Index.html",
@@ -55,6 +55,8 @@ const PUBLIC_FILES = new Set([
   "/cocodrilo.png",
   "/logo.inti.jpeg",
   "/perfil.inti.jpeg",
+  "/mejoras.js",
+  "/mejoras.css",
 ]);
 
 app.use((req, res, next) => {
@@ -160,12 +162,18 @@ async function getAdminCafetinId(db, adminId) {
   return q.rows.length ? Number(q.rows[0].cafetin_id || 1) : null;
 }
 
+
+// Mejoras: estadísticas, buzón de opiniones, imágenes y costos de productos.
+// Se registran ANTES de las rutas de menú para que reemplacen a las anteriores.
+const mejoras = require("./mejoras.routes");
+mejoras(app, pool, { validateAdmin, getAdminCafetinId, normalizeRole });
+
 // =========================================================
-// AUTENTICACIÃ“N
+// AUTENTICACIÓN
 // =========================================================
 
  // =========================================================
- // LOGIN â€” Compatible con contraseÃ±as antiguas y bcrypt
+ // LOGIN — Compatible con contraseñas antiguas y bcrypt
  // =========================================================
 
 app.post("/api/login", async (req, res) => {
@@ -230,7 +238,7 @@ app.post("/api/login", async (req, res) => {
         storedPassword
       );
     } else {
-      // Compatibilidad temporal con contraseÃ±as antiguas.
+      // Compatibilidad temporal con contraseñas antiguas.
       passwordCorrecta = password === storedPassword;
     }
 
@@ -240,8 +248,8 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Migrar la contraseÃ±a antigua a bcrypt tras
-    // comprobar que la contraseÃ±a ingresada es correcta.
+    // Migrar la contraseña antigua a bcrypt tras
+    // comprobar que la contraseña ingresada es correcta.
     if (!isBcryptHash) {
       const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -256,7 +264,7 @@ app.post("/api/login", async (req, res) => {
       );
     }
 
-    // No enviar nunca la contraseÃ±a ni su hash al navegador.
+    // No enviar nunca la contraseña ni su hash al navegador.
     const {
       contrasena: _contrasena,
       ...safeUser
@@ -285,7 +293,7 @@ app.post("/api/login", async (req, res) => {
     console.error("Error en login:", e);
 
     return res.status(500).json({
-      error: "Error interno al iniciar sesiÃ³n.",
+      error: "Error interno al iniciar sesión.",
     });
   }
 });
@@ -293,7 +301,7 @@ app.post("/api/login", async (req, res) => {
 
 
  // =========================================================
- // REGISTRO â€” ContraseÃ±as protegidas con bcrypt
+ // REGISTRO — Contraseñas protegidas con bcrypt
  // =========================================================
 
 app.post("/api/register", async (req, res) => {
@@ -315,7 +323,7 @@ password.length < 4
       
     ) {
       return res.status(400).json({
-        error: "Datos incompletos. La contraseÃ±a debe tener al menos 4 caracteres.",
+        error: "Datos incompletos. La contraseña debe tener al menos 4 caracteres.",
       });
     }
 
@@ -326,7 +334,7 @@ password.length < 4
       idCafeteria < 1
     ) {
       return res.status(400).json({
-        error: "Selecciona una cafeterÃ¬a vÃ¡lida.",
+        error: "Selecciona una cafetería válida.",
       });
     }
 
@@ -343,7 +351,7 @@ password.length < 4
 
     if (cafeteriaExiste.rows.length === 0) {
       return res.status(400).json({
-        error: "La cafeterÃ¬a seleccionada no existe o no estÃ¡ configurada.",
+        error: "La cafetería seleccionada no existe o no está configurada.",
       });
     }
 
@@ -365,7 +373,7 @@ password.length < 4
       });
     }
 
-    // Generar el hash antes de guardar la contraseÃ±a.
+    // Generar el hash antes de guardar la contraseña.
     const passwordHash = await bcrypt.hash(password, 12);
 
     const q = await pool.query(
@@ -408,10 +416,10 @@ password.length < 4
   } catch (e) {
     console.error("Error en registro:", e);
 
-    // Manejar tambiÃ©n una posible duplicaciÃ³n concurrente.
+    // Manejar también una posible duplicación concurrente.
     if (e.code === "23505") {
       return res.status(409).json({
-        error: "El correo ya estÃ¡ registrado.",
+        error: "El correo ya está registrado.",
       });
     }
 
@@ -422,7 +430,7 @@ password.length < 4
 });
 
 // =========================================================
-// SESIÃ“N
+// SESIÓN
 // =========================================================
 
 app.get(
@@ -455,7 +463,7 @@ app.get(
           .status(404)
           .json({
             error:
-              "SesiÃ³n expirada.",
+              "Sesión expirada.",
           });
       }
 
@@ -488,7 +496,7 @@ app.get(
     } catch (e) {
 
       console.error(
-        "Error recuperando sesiÃ³n:",
+        "Error recuperando sesión:",
         e
       );
 
@@ -503,11 +511,11 @@ app.get(
 );
 
 // =========================================================
-// MENÃš
+// MENÚ
 // =========================================================
 
 // =========================================================
-// OBTENER MENÃš
+// OBTENER MENÚ
 // =========================================================
 
 app.get(
@@ -566,7 +574,7 @@ app.get(
     } catch (e) {
 
       console.error(
-        "Error obteniendo menÃº:",
+        "Error obteniendo menú:",
         e
       );
 
@@ -672,7 +680,7 @@ app.patch(
             .status(400)
             .json({
               error:
-                "El nombre del producto no es vÃ¡lido.",
+                "El nombre del producto no es válido.",
             });
         }
 
@@ -709,7 +717,7 @@ app.patch(
             .status(400)
             .json({
               error:
-                "El precio no es vÃ¡lido.",
+                "El precio no es válido.",
             });
         }
 
@@ -742,7 +750,7 @@ app.patch(
             .status(400)
             .json({
               error:
-                "La disponibilidad no es vÃ¡lida.",
+                "La disponibilidad no es válida.",
             });
         }
 
@@ -807,7 +815,7 @@ app.patch(
 );
 
  // =========================================================
- // ELIMINAR PRODUCTO â€” SOLO ADMINISTRADOR
+ // ELIMINAR PRODUCTO — SOLO ADMINISTRADOR
  // =========================================================
 
 app.delete("/api/menu/:id", async (req, res) => {
@@ -826,7 +834,7 @@ app.delete("/api/menu/:id", async (req, res) => {
 
     if (!Number.isInteger(productoId) || productoId <= 0) {
       return res.status(400).json({
-        error: "Identificador de producto no vÃ¡lido."
+        error: "Identificador de producto no válido."
       });
     }
 
@@ -841,7 +849,7 @@ app.delete("/api/menu/:id", async (req, res) => {
 
     if (!resultado.rows.length) {
       return res.status(404).json({
-        error: "Producto no encontrado en tu cafetÃ¬n."
+        error: "Producto no encontrado en tu cafetín."
       });
     }
 
@@ -921,7 +929,7 @@ app.post(
           .status(400)
           .json({
             error:
-              "El precio no es vÃ¡lido.",
+              "El precio no es válido.",
           });
       }
 
@@ -1011,7 +1019,7 @@ app.post(
       ) {
 
         throw new Error(
-          "Usuario no vÃ¡lido."
+          "Usuario no válido."
         );
       }
 
@@ -1099,7 +1107,7 @@ app.post(
         ) {
 
           throw new Error(
-            "Producto invÃ¡lido."
+            "Producto inválido."
           );
         }
 
@@ -1111,7 +1119,7 @@ app.post(
         ) {
 
           throw new Error(
-            "Cantidad de producto invÃ¡lida."
+            "Cantidad de producto inválida."
           );
         }
 
@@ -1122,6 +1130,7 @@ app.post(
               id,
               nombre,
               precio,
+              costo,
               disponible,
               cafetin_id
             FROM productos
@@ -1147,7 +1156,7 @@ app.post(
         ) {
 
           throw new Error(
-            `El producto "${producto.nombre}" estÃ¡ agotado.`
+            `El producto "${producto.nombre}" está agotado.`
           );
         }
 
@@ -1176,6 +1185,9 @@ app.post(
           qty:
             cantidad,
 
+          cost:
+            Number(producto.costo || 0),
+
         });
       }
 
@@ -1189,12 +1201,12 @@ app.post(
       ) {
 
         throw new Error(
-          "El total del pedido no es vÃ¡lido."
+          "El total del pedido no es válido."
         );
       }
 
       // =====================================================
-      // INICIAR TRANSACCIÃ“N
+      // INICIAR TRANSACCIÓN
       // =====================================================
 
       await client.query(
@@ -1264,7 +1276,7 @@ app.post(
       ) {
 
         throw new Error(
-          "No se pudo obtener el nÃºmero de turno."
+          "No se pudo obtener el número de turno."
         );
       }
 
@@ -1322,19 +1334,8 @@ app.post(
         await client.query(
           `
           INSERT INTO pedidos_detalle
-            (
-              pedido_id,
-              producto,
-              precio,
-              cantidad
-            )
-          VALUES
-            (
-              $1,
-              $2,
-              $3,
-              $4
-            )
+            (pedido_id, producto, precio, cantidad, costo)
+          VALUES ($1, $2, $3, $4, $5)
           `,
           [
             pedido.id,
@@ -1343,6 +1344,7 @@ app.post(
               item.price
             ),
             item.qty,
+            r2(item.cost),
           ]
         );
       }
@@ -1656,7 +1658,7 @@ app.post("/api/order/:id/confirm", async (req, res) => {
 });
 
 // =========================================================
-// OBTENER PEDIDOS â€” ADMIN
+// OBTENER PEDIDOS — ADMIN
 // =========================================================
 
 app.get(
@@ -1869,7 +1871,7 @@ app.patch(
           .status(400)
           .json({
             error:
-              "Estado de pedido no vÃ¡lido.",
+              "Estado de pedido no válido.",
           });
       }
 
@@ -1934,7 +1936,7 @@ app.patch(
 );
 
 // =========================================================
-// CUENTAS â€” ADMIN
+// CUENTAS — ADMIN
 // =========================================================
 
 app.get(
@@ -2049,7 +2051,7 @@ WHERE u.cafetin_id = $1
 );
 
 // =========================================================
-// MODIFICAR SALDO â€” ADMIN
+// MODIFICAR SALDO — ADMIN
 // =========================================================
 
 app.patch(
@@ -2104,7 +2106,7 @@ app.patch(
           .status(400)
           .json({
             error:
-              "Monto invÃ¡lido.",
+              "Monto inválido.",
           });
       }
 
@@ -2287,7 +2289,7 @@ app.post("/api/account/:id/reset-password", async (req, res) => {
 // TURNOS
 // =========================================================
 
-// PrÃ³ximo turno que se entregarÃ¡ (pÃºblico: se muestra en la portada)
+// Próximo turno que se entregará (público: se muestra en la portada)
 app.get("/api/turno", async (req, res) => {
   try {
     const cafeteriaId = Number(req.query.cafeteriaId) || 1;
@@ -2302,7 +2304,7 @@ app.get("/api/turno", async (req, res) => {
   }
 });
 
-// Reiniciar turnos (solo administrador): el prÃ³ximo pedido serÃ¡ el 1
+// Reiniciar turnos (solo administrador): el próximo pedido será el 1
 app.post("/api/turno/reset", async (req, res) => {
   try {
     const { adminId } = req.body || {};
@@ -2328,7 +2330,7 @@ app.post("/api/turno/reset", async (req, res) => {
 });
 
 // =========================================================
-// PRUEBA DE CONEXIÃ“N
+// PRUEBA DE CONEXIÓN
 // =========================================================
 
 app.get(
@@ -2455,7 +2457,7 @@ async function initDatabase() {
     );
    
 INSERT INTO cafeterias (id, nombre) VALUES
-  (1, 'CafetÃ¬n 1'), (2, 'CafetÃ¬n 2'), (3, 'CafetÃ¬n 3')
+  (1, 'Cafetín 1'), (2, 'Cafetín 2'), (3, 'Cafetín 3')
   ON CONFLICT (id) DO NOTHING;
 
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -2500,7 +2502,7 @@ INSERT INTO cafeterias (id, nombre) VALUES
     );
   `);
 
-  // MigraciÃ³n compatible con la base existente.
+  // Migración compatible con la base existente.
   await pool.query(`
     ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cafetin_id INTEGER NOT NULL DEFAULT 1 REFERENCES cafeterias(id);
     ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
@@ -2511,12 +2513,12 @@ INSERT INTO cafeterias (id, nombre) VALUES
     ALTER TABLE contador_turno ADD COLUMN IF NOT EXISTS reiniciado_en TIMESTAMP NOT NULL DEFAULT '1970-01-01';
     INSERT INTO contador_turno (id, valor, reiniciado_en) VALUES (1,0,NOW()),(2,0,NOW()),(3,0,NOW()) ON CONFLICT (id) DO NOTHING;
   `);
-  // La cuenta histÃ³rica sigue perteneciendo al CafetÃ¬n 1.
+  // La cuenta histórica sigue perteneciendo al Cafetín 1.
   await pool.query("UPDATE usuarios SET cafetin_id = 1 WHERE cafetin_id IS NULL");
   await pool.query("UPDATE productos SET cafetin_id = 1 WHERE cafetin_id IS NULL");
   await pool.query("UPDATE pedidos SET cafetin_id = 1 WHERE cafetin_id IS NULL");
 
-  // Columna para saber desde cuÃ¡ndo empezÃ³ el ciclo de turnos actual
+  // Columna para saber desde cuándo empezó el ciclo de turnos actual
   await pool.query(
     `ALTER TABLE contador_turno
      ADD COLUMN IF NOT EXISTS reiniciado_en TIMESTAMP NOT NULL
@@ -2555,14 +2557,14 @@ if (!admin.rows.length) {
     [ADMIN_EMAIL, adminPasswordHash]
   );
 } else {
-  // El administrador ya existe: no modificar su contraseÃ±a.
+  // El administrador ya existe: no modificar su contraseña.
 }
     
-    // Restablecer la contraseÃ±a solo si se solicita explÃ¬citamente.
+    // Restablecer la contraseña solo si se solicita explícitamente.
     if (process.env.RESET_ADMIN === "1") {
       if (!ADMIN_PASSWORD) {
         throw new Error(
-          "No se puede restablecer la contraseÃ±a: falta configurar ADMIN_PASSWORD."
+          "No se puede restablecer la contraseña: falta configurar ADMIN_PASSWORD."
         );
       }
 
@@ -2575,28 +2577,28 @@ if (!admin.rows.length) {
 
       if (resultado.rowCount === 0) {
         throw new Error(
-          "No se encontrÃ³ el administrador para restablecer la contraseÃ±a."
+          "No se encontró el administrador para restablecer la contraseña."
         );
       }
 
-      console.log("ContraseÃ±a del administrador restablecida con bcrypt.");
+      console.log("Contraseña del administrador restablecida con bcrypt.");
     }
 
  
-  // Administradores independientes por cafetÃ¬n.
-  // No modificar automÃ¡ticamente cuentas existentes.
+  // Administradores independientes por cafetín.
+  // No modificar automáticamente cuentas existentes.
   const administradoresCafetin = [
     {
       id: 2,
       email: process.env.ADMIN2_EMAIL || 'admin2@cafetin.edu.sv',
       password: process.env.ADMIN2_PASSWORD,
-      name: 'Administrador CafetÃ¬n 2'
+      name: 'Administrador Cafetín 2'
     },
     {
       id: 3,
       email: process.env.ADMIN3_EMAIL || 'admin3@cafetin.edu.sv',
       password: process.env.ADMIN3_PASSWORD,
-      name: 'Administrador CafetÃ¬n 3'
+      name: 'Administrador Cafetín 3'
     }
   ];
 
@@ -2612,10 +2614,10 @@ if (!admin.rows.length) {
       continue;
     }
 
-    // Solo crear la cuenta si hay una contraseÃ±a configurada.
+    // Solo crear la cuenta si hay una contraseña configurada.
     if (!a.password) {
       console.log(
-        `No se creÃ³ ${a.email}: falta configurar su contraseÃ±a.`
+        `No se creó ${a.email}: falta configurar su contraseña.`
       );
       continue;
     }
@@ -2633,7 +2635,7 @@ if (!admin.rows.length) {
   }
 
   
-// Estudiante de demostraciÃ³n: solo en desarrollo local.
+// Estudiante de demostración: solo en desarrollo local.
 if (process.env.NODE_ENV !== "production") {
   const demoEmail = "maria@colegio.edu.sv";
 
@@ -2653,7 +2655,7 @@ if (process.env.NODE_ENV !== "production") {
         (nombre, correo, contrasena, rol, saldo)
        VALUES ($1, $2, $3, $4, $5)`,
       [
-        "MarÃ¬a HernÃ¡ndez",
+        "María Hernández",
         demoEmail,
         demoPasswordHash,
         "estudiante",
@@ -2663,7 +2665,7 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
   
-  // MenÃº inicial: crear productos de ejemplo solo en desarrollo.
+  // Menú inicial: crear productos de ejemplo solo en desarrollo.
   if (process.env.NODE_ENV !== 'production') {
     const prod = await pool.query(
       "SELECT COUNT(*)::int AS n FROM productos"
@@ -2675,7 +2677,7 @@ if (process.env.NODE_ENV !== "production") {
          VALUES
           ('Pupusa de queso', 0.50, true, 1),
           ('Pan con pollo', 1.25, true, 1),
-          ('SÃ¡ndwich de jamÃ³n', 1.00, true, 1),
+          ('Sándwich de jamón', 1.00, true, 1),
           ('Refresco natural', 0.50, true, 1),
           ('Jugo de cajita', 0.40, true, 1),
           ('Galletas', 0.25, true, 1)`
@@ -2684,7 +2686,7 @@ if (process.env.NODE_ENV !== "production") {
   }
 
 
-// Cierre de la funciÃ³n initDatabase
+// Cierre de la función initDatabase
 }
 // =========================================================
 // INICIAR SERVIDOR
@@ -2692,26 +2694,27 @@ if (process.env.NODE_ENV !== "production") {
 
 async function start() {
   console.log("=================================================");
-  console.log(" TIQUETE â€” SERVIDOR");
+  console.log(" TIQUETE — SERVIDOR");
 
   try {
     await initDatabase();
+    await mejoras.init(pool);
     console.log(" PostgreSQL: conectado y tablas listas");
     } catch (e) {
     console.error("PostgreSQL: ERROR ->", e.message);
-    console.error("No se iniciarÃ¡ el servidor porque fallÃ³ la inicializaciÃ³n de la base de datos.");
+    console.error("No se iniciará el servidor porque falló la inicialización de la base de datos.");
     process.exit(1);
   }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(` En esta computadora: http://localhost:${PORT}`);
 
-    // Direcciones para abrir desde el telÃ©fono (misma red Wi-Fi)
+    // Direcciones para abrir desde el teléfono (misma red Wi-Fi)
     Object.values(os.networkInterfaces())
       .flat()
       .filter((n) => n && n.family === "IPv4" && !n.internal)
       .forEach((n) =>
-        console.log(` Desde el telÃ©fono:     http://${n.address}:${PORT}`)
+        console.log(` Desde el teléfono:     http://${n.address}:${PORT}`)
       );
 
     console.log("=================================================");
@@ -2719,5 +2722,3 @@ async function start() {
 }
 
 start();
-
-
